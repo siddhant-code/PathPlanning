@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from sympy import symbols
-from itertools import pairwise
 import math
 from queue import PriorityQueue
 from moviepy.editor import ImageSequenceClip
@@ -311,27 +310,27 @@ image = np.pad(image,((50-5,50-5),(10-5,50-5),(0,0)),mode="edge") # add padding 
 image = cv2.copyMakeBorder(image, 5, 5, 5, 5, cv2.BORDER_CONSTANT, value=OBSTACLE_COLOR)
 
 # Getting start point inputs from user
-start_point = input("Enter initial coordinates in form x,y,theta:")
+start_point = input("Enter the start coordinates in form x,y,theta: ")
 start_point = np.array(start_point.split(","),dtype=np.int32)
 # Loop until correct input is received
 while start_point[0] >= 600 or start_point[1] >= 250 or np.all(image[start_point[1],start_point[0]] == OBSTACLE_COLOR) or np.all(image[start_point[1],start_point[0]] == WALL_COLOR):
-  print("Point inside obstacle space, please chose different starting point")
-  start_point = input("Enter initial coordinates in form x,y,theta:")
+  print("-- Point inside obstacle space, please chose different starting point --")
+  start_point = input("Enter the start coordinates in form x,y,theta: ")
   start_point = np.array(start_point.split(","),dtype=np.int32)
 # Get end point inputs from user
-end_point = input("Enter goal coordinates in form x,y,theta:")
+end_point = input("Enter the goal coordinates in form x,y,theta: ")
 end_point = np.array(end_point.split(","),dtype=np.int32)
 # Loop until correct input is received
 while end_point[0] >= 600 or end_point[1] >= 250 or np.all(image[end_point[1],end_point[0]] == OBSTACLE_COLOR) or np.all(image[end_point[1],end_point[0]] == WALL_COLOR):
-  print("End inside obstacle space, please chose different starting point")
-  end_point = input("Enter goal coordinates in form x,y,theta:")
+  print("-- End inside obstacle space, please chose different starting point --")
+  end_point = input("Enter the goal coordinates in form x,y,theta: ")
   end_point = np.array(end_point.split(","),dtype=np.int32)
 # Get step size
-magnitude = int(input("Enter length of vector"))
+magnitude = int(input("Enter the step size: "))
 # Loop until correct step size is received
 while not 1 <= magnitude <= 10:
-  print("Maginitude value should be a value between 1 and 10")
-  magnitude = int(input("Enter length of vector"))
+  print("Step size value should be a value between 1 and 10")
+  magnitude = int(input("Enter length of step size: "))
 
 # class to define node
 class Node():
@@ -441,7 +440,7 @@ while open_list.qsize() > 0:
       else:
         open_list.put((n)) # Add node to open list
   frames.append(np.flipud(image))
-print("Total time to find path:",time.time() - start_time)
+print("\nTotal time to find path:",time.time() - start_time,end="\n\n")
 
 clip = ImageSequenceClip(frames, fps=24)
 clip.write_videofile('output_astar.mp4')
