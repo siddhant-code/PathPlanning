@@ -11,4 +11,4 @@ You can access them through the folders [bfs](../PathPlanning/path_planning_algo
 
 This project implements A* Algorithm to find a path between the start and end point on a given map for a mobile robot.
 
-You can access the project files through the folder [astar](../PathPlanning/path_planning_algorithms/astar/)
+You can access the project files through the folder [astar](https://github.com/siddhant-code/PathPlanning/tree/main/path_planning_algorithms/astar)
