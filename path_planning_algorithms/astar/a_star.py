@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from sympy import symbols
+from itertools import pairwise
 import math
 from queue import PriorityQueue
 from moviepy.editor import ImageSequenceClip
@@ -27,8 +28,6 @@ OPEN_NODE_COLOR = (56,36,66)
 INITIAL_NODE_COLOR = (255,255,255)
 GOAL_NODE_COLOR = (0,0,0)
 WALL_COLOR = (0,49,83)
-
-weight = 10 # Adjust the weight to more than 1 to turn into weighted Astar, 1 for Astar
 
 # Defining symbols
 x,y,z,a,b,r = symbols("x,y,z,a,b,r")
@@ -84,7 +83,6 @@ class ShapeCollection():
         break
     return verdict
 
-# Function to get the line offset
 def get_line_offset(line:Line):
   sign = line.symbol
   if sign == "g": # g for greater than and l for lesser than
@@ -339,7 +337,6 @@ while end_point[0] >= 600 or end_point[1] >= 250 or np.all(image[end_point[1],en
   print("-- End inside obstacle space, please chose different starting point --")
   end_point = input("Enter the goal coordinates in form x,y,theta: ")
   end_point = np.array(end_point.split(","),dtype=np.int32)
-  
 # Get step size
 magnitude = int(input("Enter the step size: "))
 # Loop until correct step size is received
@@ -355,7 +352,7 @@ class Node():
     self.cost_from_parent = cost_from_parent
     self.goal_state = np.array(goal_state) if (not isinstance(self.parent_node,Node)) else self.parent_node.goal_state
     self.cost_to_come = self.cost_from_parent + (self.parent_node.cost_to_come if isinstance(self.parent_node,Node) else 0)
-    self.estimated_cost_to_go = np.linalg.norm((self.value[:2]- self.goal_state[:2]))/magnitude * weight
+    self.estimated_cost_to_go = np.linalg.norm((self.value[:2]- self.goal_state[:2]))/magnitude
     self.total_cost = self.cost_to_come + self.estimated_cost_to_go
 
   # __hash__ function to enable adding in set
@@ -404,7 +401,7 @@ def expand_node(node:Node,length):
   child_nodes = []
   for diff in [-60,-30,0,30,60]:
     angle = np.deg2rad(theta + diff)
-    child_nodes.append(Node((x + L*np.cos(angle),y + L*np.sin(angle),theta + diff),node,1))
+    child_nodes.append(Node((x + L*np.cos(angle),y + L*np.sin(angle),theta + diff),node,0.2))
   return child_nodes
 
 initial_state= tuple(start_point)
