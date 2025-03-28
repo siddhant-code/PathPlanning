@@ -454,7 +454,17 @@ while open_list.qsize() > 0:
         open_list.put((n)) # Add node to open list
   frames.append(np.flipud(image))
   
-print("\nTotal time to find path:",time.time() - start_time,end="\n\n")
+print("\nTotal time to find path:", time.time() - start_time, end="\n\n")
+
+for frame in frames:
+    frame = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)  # Normalize values
+    frame = np.uint8(frame)  # Convert to uint8
+    if len(frame.shape) == 2:
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert grayscale to BGR if needed
+    cv2.imshow('Output', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    if cv2.waitKey(30) & 0xFF == ord('q'):  # Adjust delay for video effect
+        break
+cv2.destroyAllWindows()
 
 clip = ImageSequenceClip(frames, fps=24)
 clip.write_videofile('output_astar.mp4')
