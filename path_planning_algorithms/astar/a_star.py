@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from sympy import symbols
-from itertools import pairwise
 import math
 from queue import PriorityQueue
 from moviepy.editor import ImageSequenceClip
@@ -301,6 +300,9 @@ def scale(image,scalex,scaley):
   return np.repeat(np.repeat(image,scalex,axis=1),scaley,axis=0)
 
 # Drawing thr grid
+
+print("Generating the map...")
+
 image = np.full((height,width,3),BACKGROUND_COLOR)
 for row in range(height):
   for column in range(width):
@@ -394,7 +396,6 @@ class Node():
       curr_node = curr_node.parent_node
     return path[::-1] # Return path from initial node to goal node
 
-# Function to expand node
 def expand_node(node:Node,length):
   x,y,theta = node.value
   L = length

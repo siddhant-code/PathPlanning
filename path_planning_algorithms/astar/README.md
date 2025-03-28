@@ -3,7 +3,7 @@
 
 ### Students:
 
-1) Siddhant ()
+1) Siddhant Pramod Deshmukh (121322463)
 2) Pon Aswin Sankaralingam (121322517)
 3) Venkata Madhav Tadavarthi (121058768)
 
@@ -49,7 +49,7 @@ cd path_planning_algorithms/astar/
 You can run the python file by the following command:
 
 ```
-python3 a_star.py
+python3 Proj3_Siddhant_PonAswin_VenkataMadhav.py
 ```
 
 ## Instructions
@@ -71,12 +71,14 @@ After viewing the map, press Q key to close the window and continue.
 - Step-size: ($1 < 10 < 10$)
     - "Enter the step size: "
 
+The script will validate whether the input and goal coordinates are within free space. Otherwise prints a message "-- Point inside obstacle space, please chose different starting point --" and "-- End inside obstacle space, please chose different starting point --" until valid coordinates are provided by the user. 
+
+If the step size is not between 1 to 10, it prints a message "Step size value should be a value between 1 and 10" and asks the user to provide step size untill valid value is given.
+
 ### Example:
 
 ![output](./assets/output.png)
 
-The script will validate whether the input and goal coordinates are within free space. Otherwise prints a message "-- Point inside obstacle space, please chose different starting point --" and "-- End inside obstacle space, please chose different starting point --" until valid coordinates are provided by the user. 
-
-If the step size is not between 1 to 10, it prints a message "Step size value should be a value between 1 and 10" and asks the user to provide step size untill valid value is given.
+![output](./assets/output.gif)
 
 
