@@ -54,6 +54,12 @@ python3 a_star.py
 
 ## Instructions
 
+When you run the program, it will first display the workspace map (250x600) showing the obstacles, wall and the clearance region.
+
+![map](./assets/map.png)
+
+After viewing the map, press Q key to close the window and continue.
+
 ### User Input:
 
 - Start Position: ($x_s,y_s,\theta_s$) 

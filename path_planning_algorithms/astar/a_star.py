@@ -10,12 +10,15 @@ from moviepy.editor import ImageSequenceClip
 import time
 import cv2
 
-# Defining constant values and colors
-height = 50
-width = 180
+# Defining the constraints
+height = 50       # Will be scaled later to get 250
+width = 180       # Will be scaled later to get 600
 linear_threshold = 0.5
 angular_threshold = 30
-clearance = 2
+clearance = 2     # Will be scaled later to get 5 clearance
+robot_radius = 5
+
+# Defining the colors
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (74,48,109)
 PATH_COLOR =  (255, 0, 0)
@@ -24,6 +27,7 @@ OPEN_NODE_COLOR = (56,36,66)
 INITIAL_NODE_COLOR = (255,255,255)
 GOAL_NODE_COLOR = (0,0,0)
 WALL_COLOR = (0,49,83)
+
 weight = 10 # Adjust the weight to more than 1 to turn into weighted Astar, 1 for Astar
 
 # Defining symbols
@@ -80,6 +84,7 @@ class ShapeCollection():
         break
     return verdict
 
+# Function to get the line offset
 def get_line_offset(line:Line):
   sign = line.symbol
   if sign == "g": # g for greater than and l for lesser than
@@ -309,6 +314,14 @@ image = scale(image,3,3) # scale the image by 3 times, so clearance of 2 becomes
 image = np.pad(image,((50-5,50-5),(10-5,50-5),(0,0)),mode="edge") # add padding to get required size
 image = cv2.copyMakeBorder(image, 5, 5, 5, 5, cv2.BORDER_CONSTANT, value=OBSTACLE_COLOR)
 
+print("Press q to close the window and continue...\n")
+
+plt.title("Workspace Map")
+plt.imshow(image, origin="lower")
+plt.show()
+
+# ---- USER INPUT ----
+
 # Getting start point inputs from user
 start_point = input("Enter the start coordinates in form x,y,theta: ")
 start_point = np.array(start_point.split(","),dtype=np.int32)
@@ -317,7 +330,8 @@ while start_point[0] >= 600 or start_point[1] >= 250 or np.all(image[start_point
   print("-- Point inside obstacle space, please chose different starting point --")
   start_point = input("Enter the start coordinates in form x,y,theta: ")
   start_point = np.array(start_point.split(","),dtype=np.int32)
-# Get end point inputs from user
+  
+# Get goal point inputs from user
 end_point = input("Enter the goal coordinates in form x,y,theta: ")
 end_point = np.array(end_point.split(","),dtype=np.int32)
 # Loop until correct input is received
@@ -325,6 +339,7 @@ while end_point[0] >= 600 or end_point[1] >= 250 or np.all(image[end_point[1],en
   print("-- End inside obstacle space, please chose different starting point --")
   end_point = input("Enter the goal coordinates in form x,y,theta: ")
   end_point = np.array(end_point.split(","),dtype=np.int32)
+  
 # Get step size
 magnitude = int(input("Enter the step size: "))
 # Loop until correct step size is received
@@ -440,6 +455,7 @@ while open_list.qsize() > 0:
       else:
         open_list.put((n)) # Add node to open list
   frames.append(np.flipud(image))
+  
 print("\nTotal time to find path:",time.time() - start_time,end="\n\n")
 
 clip = ImageSequenceClip(frames, fps=24)
