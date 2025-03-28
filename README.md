@@ -4,7 +4,7 @@
 
 This project implements BFS and Dijkstra's algorithm for path planning a point robot in a 2D workspace with obstacles. The obstacles are represented by the text "ENPM661" with a clearance of 2mm.
 
-You can access them through the folders [bfs](../PathPlanning/path_planning_algorithms/bfs/) and [dijkstra](../PathPlanning/path_planning_algorithms/dijkstra/)
+You can access them through the folders [bfs](https://github.com/siddhant-code/PathPlanning/tree/main/path_planning_algorithms/bfs) and [dijkstra](https://github.com/siddhant-code/PathPlanning/tree/main/path_planning_algorithms/dijkstra)
 
 
 ## Project-3:
