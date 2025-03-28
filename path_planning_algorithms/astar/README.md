@@ -49,7 +49,7 @@ cd path_planning_algorithms/astar/
 You can run the python file by the following command:
 
 ```
-python3 Proj3_Siddhant_PonAswin_VenkataMadhav.py
+python3 a_star_Siddhant_PonAswin_VenkataMadhav.py
 ```
 
 ## Instructions
