@@ -11,7 +11,7 @@ from moviepy.editor import ImageSequenceClip
 import time
 import cv2
 
-# Defining constant values and colors
+# Defining constant values and colors for smaller grid, later it is scaled to bigger grid
 height = 50
 width = 180
 linear_threshold = 0.5
