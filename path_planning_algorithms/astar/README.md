@@ -74,3 +74,9 @@ After viewing the map, press Q key to close the window and continue.
 ### Example:
 
 ![output](./assets/output.png)
+
+The script will validate whether the input and goal coordinates are within free space. Otherwise prints a message "-- Point inside obstacle space, please chose different starting point --" and "-- End inside obstacle space, please chose different starting point --" until valid coordinates are provided by the user. 
+
+If the step size is not between 1 to 10, it prints a message "Step size value should be a value between 1 and 10" and asks the user to provide step size untill valid value is given.
+
+
