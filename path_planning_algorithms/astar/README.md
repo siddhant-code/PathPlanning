@@ -7,6 +7,9 @@
 2) Pon Aswin Sankaralingam (121322517)
 3) Venkata Madhav Tadavarthi (121058768)
 
+### Repository:
+https://github.com/siddhant-code/PathPlanning.git
+
 ## Introduction:
 
 Implementing A* Algorithm to find a path between the start and end point on a given map for a mobile
