@@ -71,7 +71,7 @@ After viewing the map, press Q key to close the window and continue.
 - Goal Position: ($x_g,y_g,\theta_g$) 
     - "Enter the goal coordinates in form x,y,theta: "
 
-- Step-size: ($1 < 10 < 10$)
+- Step-size: ($1 < step < 10$)
     - "Enter the step size: "
 
 The script will validate whether the input and goal coordinates are within free space. Otherwise prints a message "-- Point inside obstacle space, please chose different starting point --" and "-- End inside obstacle space, please chose different starting point --" until valid coordinates are provided by the user. 

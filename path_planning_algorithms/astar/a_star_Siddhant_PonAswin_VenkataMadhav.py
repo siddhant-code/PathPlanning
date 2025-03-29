@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from sympy import symbols
-from itertools import pairwise
+from itertools import tee
 import math
 from queue import PriorityQueue
 from moviepy.editor import ImageSequenceClip
@@ -29,6 +29,11 @@ WALL_COLOR = (0,49,83)
 
 # Defining symbols
 x,y,z,a,b,r = symbols("x,y,z,a,b,r")
+
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 # class to define lines
 class Line():
@@ -299,6 +304,9 @@ def scale(image,scalex,scaley):
   return np.repeat(np.repeat(image,scalex,axis=1),scaley,axis=0)
 
 # Drawing thr grid
+
+print("Generating the map....")
+
 image = np.full((height,width,3),BACKGROUND_COLOR)
 for row in range(height):
   for column in range(width):
@@ -310,40 +318,53 @@ image = scale(image,3,3) # scale the image by 3 times, so clearance of 2 becomes
 image = np.pad(image,((50-5,50-5),(10-5,50-5),(0,0)),mode="edge") # add padding to get required size
 image = cv2.copyMakeBorder(image, 5, 5, 5, 5, cv2.BORDER_CONSTANT, value=OBSTACLE_COLOR)
 
+print("Press q to close the window and continue...")
+
+plt.title("Workspace Map")
+plt.imshow(image,origin="lower")
+plt.show()
+
 frames=[]
 begin_time = time.time()
 
+# Canvas dimensions
 height, width = 250,600
 canvas = np.flipud(image).copy()
 
+# Function to flip the y (origin)
 def flip_y(y):
     return height - y - 1
 
-
+# FUnction to check if the coordinate is in free space
 def is_free(x, y, canvas):
     if y >= height or x>= width:
       return False
     return np.all(canvas[int(y)][int(x)] == BACKGROUND_COLOR)
 
+# Function to calculate the heuristic (Euclidean distance) between two points
 def calc_heuristic(p1, p2):
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
+# Function to check if the current position has reached the target
 def reached_target(current, target, pos_tol=1.5, angle_tol=30):
     dist = calc_heuristic(current, target)
     angle_diff = abs(current[2] - target[2]) % 360
     angle_diff = min(angle_diff, 360 - angle_diff)
     return dist <= pos_tol and angle_diff <= angle_tol
 
+# Function to apply a motion given the current state, angle, and distance (actions)
 def apply_motion(current, angle, distance):
     radian = math.radians(angle)
     x_new = round((current[0] + distance * math.cos(radian)) * 2) / 2
     y_new = round((current[1] + distance * math.sin(radian)) * 2) / 2
     return (x_new, y_new, angle), distance
 
+# Function to rotate the robot by an angle offset and move forward by a step size
 def rotate_and_move(current, angle_offset, step):
     new_angle = (current[2] + angle_offset) % 360
     return apply_motion(current, new_angle, step)
 
+# Defining the action set
 move_options = {
     'FWD': lambda node, o, s: apply_motion(node, o, s),
     'L30': lambda node, o, s: rotate_and_move(node, 30, s),
@@ -352,33 +373,50 @@ move_options = {
     'R60': lambda node, o, s: rotate_and_move(node, -60, s)
 }
 
+# Function to implement the A* algorithm
 def a_star_search(canvas_img, start, target, move_step):
+    
+    # Priority queue (open list) initialized with the start node
     open_list = [(calc_heuristic(start, target), start)]
+    
+    # Visited nodes
     visited_set = set()
+    
+    # Dicts to store path tree and costs 
     path_tree = {start: None}
     path_cost = {start: 0}
+    
     space_mask = np.all(canvas_img == BACKGROUND_COLOR, axis=2)
+    # Sotring for visualization
     trace_children, trace_parents, visited_nodes = [], [], []
 
+    # Function to check if the point is in free space
     def point_is_valid(x, y, mask):
         flipped_y = flip_y(y)
         if 0 <= x < width and 0 <= flipped_y < height:
             return mask[flipped_y, x]
         return False
 
+    # Main loop for A* search
     while open_list:
+      # Retrieve the node with the lowest cost
         _, node = heapq.heappop(open_list)
         visited_set.add(node[:2])
         next_nodes = []
+        # Check if the current node has reached the target
         if reached_target(node, target):
             return trace_route(path_tree, start, node), path_cost[node], visited_nodes, trace_parents, trace_children
 
+        #  Expand to neighboring nodes
         for _, move_fn in move_options.items():
             neighbor, _ = move_fn(node, node[2], move_step)
+            # Skip if the neighbor has already been visited or is not in free space
             if neighbor[:2] in visited_set or not point_is_valid(int(neighbor[0]), int(neighbor[1]), space_mask):
                 continue
 
             total_cost = path_cost[node] + move_step
+            
+            # Update path cost if a better path is found
             if neighbor not in path_cost or total_cost < path_cost[neighbor]:
                 path_cost[neighbor] = total_cost
                 priority = total_cost + calc_heuristic(neighbor, target)
@@ -387,54 +425,81 @@ def a_star_search(canvas_img, start, target, move_step):
                 visited_nodes.append(neighbor)
                 next_nodes.append(neighbor[:2])
 
+        # If new nodes were added, update trace data for visualization
         if next_nodes:
             trace_parents.append(node[:2])
             trace_children.append(next_nodes)
 
     return None, None, visited_nodes, trace_parents, trace_children
 
+# fUNCTION to backtrack the path
 def trace_route(path_map, origin, endpoint):
     steps = [endpoint]
+    # Continue until reaching the origin
     while steps[-1] != origin:
+        # Append the parent node
         steps.append(path_map[steps[-1]])
+    # Reverse to get the order
     steps.reverse()
     return steps
 
+# Function to visualise the search process
 def visualize_path(canvas_img, path, parents, children):
+    print("Generating video...")
+    # Draw exploration vectors to visualize the search process
     for idx, parent in enumerate(parents):
         for child in children[idx]:
             x1, y1 = int(parent[0]), flip_y(int(parent[1]))
             x2, y2 = int(child[0]), flip_y(int(child[1]))
+            #  Draw an arrowed line representing the expansion
             canvas_img = cv2.arrowedLine(canvas_img, (x1, y1), (x2, y2), (200, 160, 40), 1, tipLength=0.2).copy()
 
         if idx % 50 == 0:
           frames.append(canvas_img)
 
+     # Draw the final path in red
     for parent,child in pairwise(path):
         x1, y1 = int(parent[0]), flip_y(int(parent[1]))
         x2, y2 = int(child[0]), flip_y(int(child[1]))
         canvas_img = cv2.arrowedLine(canvas_img, (x1, y1), (x2, y2), (0,0,250), 1, tipLength=0.2)
         frames.append(canvas_img)
+        
+    # Create a video from the frames    
     clip = ImageSequenceClip(frames, fps=24)
     clip.write_videofile(f'output_astar.mp4')
     print("Video saved as output_astar.mp4")
 
-sx, sy, t1 = map(int, input("Enter START (x,y,theta): ").split(','))
-gx, gy, t2 = map(int, input("Enter GOAL (x,y,theta): ").split(','))
+# ---- USER INPUT ----
 
+# Start positions
+sx, sy, t1 = map(int, input("\nEnter the start coordinates in the form x,y,theta: ").split(','))
+while not is_free(sx, sy, canvas) or t1 % 30 != 0:
+  print("Invalid start position.")
+  sx, sy, t1 = map(int, input("Enter the start coordinates in the form x,y,theta: ").split(','))
 
+# Goal positions
+gx, gy, t2 = map(int, input("Enter the goal coordinates in the form x,y,theta: ").split(','))
+while not is_free(gx, gy, canvas) or t2 % 30 != 0:
+  print("Invalid goal position.")          
+  gx, gy, t2 = map(int, input("Enter the goal coordinates in the form x,y,theta: ").split(','))
+
+# Step value
+step = int(input("Enter the step-size (1-10): "))
+while not 1 <= step <= 10:
+  print("Step size value should be a value between 1 and 10")
+  step = int(input("Enter the step-size: "))
+  
 start = (sx, sy, t1)
 goal = (gx, gy, t2)
-step = int(input("Enter step size (1-10): "))
 
-while not is_free(sx, sy, canvas) or not is_free(gx, gy, canvas) or t1 % 30 != 0 or t2 % 30 != 0:
-            print("Invalid start or goal position.")
-            sx, sy, t1 = map(int, input("Enter START (x,y,theta): ").split(','))
-            gx, gy, t2 = map(int, input("Enter GOAL (x,y,theta): ").split(','))
-
+# Perform A*
 path, cost, explored, parent_nodes, child_nodes = a_star_search(canvas.copy(), start, goal, step)
+
 if path:
-                print("Path found. Total cost:", cost)
-                visualize_path(canvas.copy(), path, parent_nodes, child_nodes)
+  
+  print("\nPath found. Total cost:", cost, end="\n\n")
+  # Generate animation
+  visualize_path(canvas.copy(), path, parent_nodes, child_nodes)
+
 else:
-                print("No valid path found.")
+  print("\nNo valid path found.")
