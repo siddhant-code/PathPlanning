@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Github Repository: https://github.com/siddhant-code/PathPlanning.git
-
 import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from sympy import symbols
+from itertools import pairwise
 import math
 from queue import PriorityQueue
 from moviepy.editor import ImageSequenceClip
 import time
 import cv2
+import heapq
 
-# Defining the constraints
-height = 50       # Will be scaled later to get 250
-width = 180       # Will be scaled later to get 600
+# Defining constant values and colors
+height = 50
+width = 180
 linear_threshold = 0.5
 angular_threshold = 30
-clearance = 2     # Will be scaled later to get 5 clearance
-robot_radius = 5
-
-# Defining the colors
+clearance = 2
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (74,48,109)
 PATH_COLOR =  (255, 0, 0)
@@ -302,9 +299,6 @@ def scale(image,scalex,scaley):
   return np.repeat(np.repeat(image,scalex,axis=1),scaley,axis=0)
 
 # Drawing thr grid
-
-print("Generating the map...")
-
 image = np.full((height,width,3),BACKGROUND_COLOR)
 for row in range(height):
   for column in range(width):
@@ -316,157 +310,131 @@ image = scale(image,3,3) # scale the image by 3 times, so clearance of 2 becomes
 image = np.pad(image,((50-5,50-5),(10-5,50-5),(0,0)),mode="edge") # add padding to get required size
 image = cv2.copyMakeBorder(image, 5, 5, 5, 5, cv2.BORDER_CONSTANT, value=OBSTACLE_COLOR)
 
-print("Press q to close the window and continue...\n")
+frames=[]
+begin_time = time.time()
 
-plt.title("Workspace Map")
-plt.imshow(image, origin="lower")
-plt.show()
+height, width = 250,600
+canvas = np.flipud(image).copy()
 
-# ---- USER INPUT ----
+def flip_y(y):
+    return height - y - 1
 
-# Getting start point inputs from user
-start_point = input("Enter the start coordinates in form x,y,theta: ")
-start_point = np.array(start_point.split(","),dtype=np.int32)
-# Loop until correct input is received
-while start_point[0] >= 600 or start_point[1] >= 250 or np.all(image[start_point[1],start_point[0]] == OBSTACLE_COLOR) or np.all(image[start_point[1],start_point[0]] == WALL_COLOR):
-  print("-- Point inside obstacle space, please chose different starting point --")
-  start_point = input("Enter the start coordinates in form x,y,theta: ")
-  start_point = np.array(start_point.split(","),dtype=np.int32)
-  
-# Get goal point inputs from user
-end_point = input("Enter the goal coordinates in form x,y,theta: ")
-end_point = np.array(end_point.split(","),dtype=np.int32)
-# Loop until correct input is received
-while end_point[0] >= 600 or end_point[1] >= 250 or np.all(image[end_point[1],end_point[0]] == OBSTACLE_COLOR) or np.all(image[end_point[1],end_point[0]] == WALL_COLOR):
-  print("-- End inside obstacle space, please chose different starting point --")
-  end_point = input("Enter the goal coordinates in form x,y,theta: ")
-  end_point = np.array(end_point.split(","),dtype=np.int32)
-# Get step size
-magnitude = int(input("Enter the step size: "))
-# Loop until correct step size is received
-while not 1 <= magnitude <= 10:
-  print("Step size value should be a value between 1 and 10")
-  magnitude = int(input("Enter length of step size: "))
 
-# class to define node
-class Node():
-  def __init__(self,value:tuple,parent_node,cost_from_parent,goal_state=None):
-    self.value = self.process_value(value)
-    self.parent_node = parent_node
-    self.cost_from_parent = cost_from_parent
-    self.goal_state = np.array(goal_state) if (not isinstance(self.parent_node,Node)) else self.parent_node.goal_state
-    self.cost_to_come = self.cost_from_parent + (self.parent_node.cost_to_come if isinstance(self.parent_node,Node) else 0)
-    self.estimated_cost_to_go = np.linalg.norm((self.value[:2]- self.goal_state[:2]))/magnitude
-    self.total_cost = self.cost_to_come + self.estimated_cost_to_go
+def is_free(x, y, canvas):
+    if y >= height or x>= width:
+      return False
+    return np.all(canvas[int(y)][int(x)] == BACKGROUND_COLOR)
 
-  # __hash__ function to enable adding in set
-  def __hash__(self) -> int:
-    return hash(self.value)
+def calc_heuristic(p1, p2):
+    return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
-  # __repr__ function to define action for print()
-  def __repr__(self) -> str:
-    return str(self.value)
+def reached_target(current, target, pos_tol=1.5, angle_tol=30):
+    dist = calc_heuristic(current, target)
+    angle_diff = abs(current[2] - target[2]) % 360
+    angle_diff = min(angle_diff, 360 - angle_diff)
+    return dist <= pos_tol and angle_diff <= angle_tol
 
-  # __eq__ to define == behaviour
-  def __eq__(self,__o:object):
-    if isinstance(__o,Node):
-      return np.all(self.value == __o.value).all()
-    elif __o is None:
-      return self.value is None
-    else:
-      return np.all(self.value == __o).all()
+def apply_motion(current, angle, distance):
+    radian = math.radians(angle)
+    x_new = round((current[0] + distance * math.cos(radian)) * 2) / 2
+    y_new = round((current[1] + distance * math.sin(radian)) * 2) / 2
+    return (x_new, y_new, angle), distance
 
-  # __lt__ to define < behaviour
-  def __lt__(self,__o:object):
-    return self.total_cost < __o.total_cost
+def rotate_and_move(current, angle_offset, step):
+    new_angle = (current[2] + angle_offset) % 360
+    return apply_motion(current, new_angle, step)
 
-  @staticmethod
-  def process_value(value):
-    return (Node.__simplify(value[0],linear_threshold),Node.__simplify(value[1],linear_threshold),Node.__simplify(value[2],angular_threshold))
+move_options = {
+    'FWD': lambda node, o, s: apply_motion(node, o, s),
+    'L30': lambda node, o, s: rotate_and_move(node, 30, s),
+    'R30': lambda node, o, s: rotate_and_move(node, -30, s),
+    'L60': lambda node, o, s: rotate_and_move(node, 60, s),
+    'R60': lambda node, o, s: rotate_and_move(node, -60, s)
+}
 
-  # method to round up continous value to discrete value
-  @staticmethod
-  def __simplify(val,threshold):
-    return val//threshold * threshold
+def a_star_search(canvas_img, start, target, move_step):
+    open_list = [(calc_heuristic(start, target), start)]
+    visited_set = set()
+    path_tree = {start: None}
+    path_cost = {start: 0}
+    space_mask = np.all(canvas_img == BACKGROUND_COLOR, axis=2)
+    trace_children, trace_parents, visited_nodes = [], [], []
 
-  # Function to backtrack path to the initial node
-  def backtrack(self):
-    path = [self]
-    curr_node = self.parent_node
-    while curr_node is not None:
-      path.append(curr_node)
-      curr_node = curr_node.parent_node
-    return path[::-1] # Return path from initial node to goal node
+    def point_is_valid(x, y, mask):
+        flipped_y = flip_y(y)
+        if 0 <= x < width and 0 <= flipped_y < height:
+            return mask[flipped_y, x]
+        return False
 
-def expand_node(node:Node,length):
-  x,y,theta = node.value
-  L = length
-  child_nodes = []
-  for diff in [-60,-30,0,30,60]:
-    angle = np.deg2rad(theta + diff)
-    child_nodes.append(Node((x + L*np.cos(angle),y + L*np.sin(angle),theta + diff),node,0.2))
-  return child_nodes
+    while open_list:
+        _, node = heapq.heappop(open_list)
+        visited_set.add(node[:2])
+        next_nodes = []
+        if reached_target(node, target):
+            return trace_route(path_tree, start, node), path_cost[node], visited_nodes, trace_parents, trace_children
 
-initial_state= tuple(start_point)
-goal_state = Node.process_value(value=end_point)
-initial_node = Node(initial_state,None,0,goal_state)
-image[int(goal_state[1])][int(goal_state[0])] = GOAL_NODE_COLOR # color goal node
-image[int(initial_state[1])][int(initial_state[0])] = INITIAL_NODE_COLOR # color initial node
+        for _, move_fn in move_options.items():
+            neighbor, _ = move_fn(node, node[2], move_step)
+            if neighbor[:2] in visited_set or not point_is_valid(int(neighbor[0]), int(neighbor[1]), space_mask):
+                continue
 
-# Function colour node with specified color
-def color_node(node,image,color):
-  if node in [initial_state,goal_state]: # Condition to check given node is not initial or end node
-    return image # return as is as we dont intend to change colors of start and end points
-  r,c = node.value[:-1]
-  image = cv2.arrowedLine(image, np.int32(node.parent_node.value[:-1]), np.int32(node.value[:-1]),color).copy()
-  return image
+            total_cost = path_cost[node] + move_step
+            if neighbor not in path_cost or total_cost < path_cost[neighbor]:
+                path_cost[neighbor] = total_cost
+                priority = total_cost + calc_heuristic(neighbor, target)
+                heapq.heappush(open_list, (priority, neighbor))
+                path_tree[neighbor] = node
+                visited_nodes.append(neighbor)
+                next_nodes.append(neighbor[:2])
 
-# Define closed list as set and open list as priority queue
-closed_list= set()
-open_list = PriorityQueue()
-open_list.put((initial_node))
+        if next_nodes:
+            trace_parents.append(node[:2])
+            trace_children.append(next_nodes)
 
-final_path = None
-frames = []
-start_time = time.time()
-while open_list.qsize() > 0:
-  # Get first element from open list
-  node = open_list.get()
-  if node.estimated_cost_to_go*magnitude < 1.5 : # Check if goal state
-    final_path = node.backtrack() # Backtrack
-    for path_node in final_path[1:]:
-      image = color_node(path_node,image,PATH_COLOR).copy() # Color the path
-      frames.append(np.flipud(image))
-    break
-  # Get child nodes
-  child_nodes = expand_node(node,magnitude)
-  closed_list.add(node) # Add expanded node to closed list
-  image = color_node(node,image,CLOSED_NODE_COLOR).copy() # Update color of closed node
-  for n in child_nodes: # Loop through all chil nodes
-    if n in closed_list or (n.value[0] >= 600) or (n.value[1] >= 250) or np.all(image[int(n.value[1])][int(n.value[0])] == OBSTACLE_COLOR) or np.all(image[int(n.value[1])][int(n.value[0])] == WALL_COLOR): # Check if node is obstacle
-      continue
-    else:
-      image = color_node(n,image,OPEN_NODE_COLOR).copy() # Update color of node
-      if n in open_list.queue: # Check if node is in open list
-        node_in_open_list = open_list.queue[open_list.queue.index(n)]
-        if node_in_open_list.total_cost > n.total_cost: # Update node in open list based on node which has least total cost
-          open_list.queue.remove(node_in_open_list)
-          open_list.put((n)) # Add node to open list
-      else:
-        open_list.put((n)) # Add node to open list
-  frames.append(np.flipud(image))
-  
-print("\nTotal time to find path:", time.time() - start_time, end="\n\n")
+    return None, None, visited_nodes, trace_parents, trace_children
 
-for frame in frames:
-    frame = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)  # Normalize values
-    frame = np.uint8(frame)  # Convert to uint8
-    if len(frame.shape) == 2:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert grayscale to BGR if needed
-    cv2.imshow('Output', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-    if cv2.waitKey(30) & 0xFF == ord('q'):  # Adjust delay for video effect
-        break
-cv2.destroyAllWindows()
+def trace_route(path_map, origin, endpoint):
+    steps = [endpoint]
+    while steps[-1] != origin:
+        steps.append(path_map[steps[-1]])
+    steps.reverse()
+    return steps
 
-clip = ImageSequenceClip(frames, fps=24)
-clip.write_videofile('output_astar.mp4')
+def visualize_path(canvas_img, path, parents, children):
+    for idx, parent in enumerate(parents):
+        for child in children[idx]:
+            x1, y1 = int(parent[0]), flip_y(int(parent[1]))
+            x2, y2 = int(child[0]), flip_y(int(child[1]))
+            canvas_img = cv2.arrowedLine(canvas_img, (x1, y1), (x2, y2), (200, 160, 40), 1, tipLength=0.2).copy()
+
+        if idx % 50 == 0:
+          frames.append(canvas_img)
+
+    for parent,child in pairwise(path):
+        x1, y1 = int(parent[0]), flip_y(int(parent[1]))
+        x2, y2 = int(child[0]), flip_y(int(child[1]))
+        canvas_img = cv2.arrowedLine(canvas_img, (x1, y1), (x2, y2), (0,0,250), 1, tipLength=0.2)
+        frames.append(canvas_img)
+    clip = ImageSequenceClip(frames, fps=24)
+    clip.write_videofile(f'output_astar.mp4')
+    print("Video saved as output_astar.mp4")
+
+sx, sy, t1 = map(int, input("Enter START (x,y,theta): ").split(','))
+gx, gy, t2 = map(int, input("Enter GOAL (x,y,theta): ").split(','))
+
+
+start = (sx, sy, t1)
+goal = (gx, gy, t2)
+step = int(input("Enter step size (1-10): "))
+
+while not is_free(sx, sy, canvas) or not is_free(gx, gy, canvas) or t1 % 30 != 0 or t2 % 30 != 0:
+            print("Invalid start or goal position.")
+            sx, sy, t1 = map(int, input("Enter START (x,y,theta): ").split(','))
+            gx, gy, t2 = map(int, input("Enter GOAL (x,y,theta): ").split(','))
+
+path, cost, explored, parent_nodes, child_nodes = a_star_search(canvas.copy(), start, goal, step)
+if path:
+                print("Path found. Total cost:", cost)
+                visualize_path(canvas.copy(), path, parent_nodes, child_nodes)
+else:
+                print("No valid path found.")
