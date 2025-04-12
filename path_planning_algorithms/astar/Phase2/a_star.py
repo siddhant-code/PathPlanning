@@ -80,7 +80,7 @@ DISTANCE_THRESHOLD = 2 # cm
 DELTA_TIME = 1
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (0,0,0)
-CLEARANCE = 3
+CLEARANCE_COLOR = (100,100,100)
 ASTAR_MAP = None
 
 action_list = {
@@ -268,28 +268,36 @@ def generate_map(clearance):
     
     # Create obstacle collection
     obstacle = ShapeCollection([])
+    clearance_only = ShapeCollection([])
 
-    # Add border (optional)
-    borders = [
-        Line(x - 0, "g"),
-        Line(x - clearance, "l"),
-        Line(x - width + clearance, "g"),
-        Line(x - width, "l"),
-        Line(y - 0, "g"),
-        Line(y - clearance, "l"),
-        Line(y - height + clearance, "g"),
-        Line(y - height, "l")
+   # Add border as obstacle + clearance
+    border_lines = [
+        (Line(x - 0, "g"), Line(x - clearance, "l")),
+        (Line(x - width + clearance, "g"), Line(x - width, "l")),
+        (Line(y - 0, "g"), Line(y - clearance, "l")),
+        (Line(y - height + clearance, "g"), Line(y - height, "l"))
     ]
 
-    border1 = Shape([borders[0], borders[1], borders[4], borders[7]])
-    border2 = Shape([borders[2], borders[3], borders[4], borders[7]])
-    border3 = Shape([borders[4], borders[5], borders[0], borders[3]])
-    border4 = Shape([borders[6], borders[7], borders[0], borders[3]])
+    # Create each border shape and its clearance counterpart
+    border1 = Shape([border_lines[0][0], border_lines[0][1], border_lines[2][0], border_lines[3][1]])
+    border2 = Shape([border_lines[1][0], border_lines[1][1], border_lines[2][0], border_lines[3][1]])
+    border3 = Shape([border_lines[2][0], border_lines[2][1], border_lines[0][0], border_lines[1][1]])
+    border4 = Shape([border_lines[3][0], border_lines[3][1], border_lines[0][0], border_lines[1][1]])
 
-    obstacle.add_shape(border1)
-    obstacle.add_shape(border2)
-    obstacle.add_shape(border3)
-    obstacle.add_shape(border4)
+    for border in [border1, border2, border3, border4]:
+        obstacle.add_shape(border)
+
+        # Inline clearance expansion
+        clearance_lines = []
+        for line in border.lines:
+            if line.symbol == "g":
+                offset_eq = line.equation + clearance
+            else:
+                offset_eq = line.equation - clearance
+            clearance_lines.append(Line(offset_eq, line.symbol))
+
+        clearance_border = Shape(clearance_lines)
+        clearance_only.add_shape(clearance_border)
 
     # Add rectangles based on your sketch (converted mm to cm)
     def add_rectangle(x1, y1, w, h):
@@ -301,7 +309,18 @@ def generate_map(clearance):
         ]
         shape = Shape(lines)
         obstacle.add_shape(shape)
+    
+        clearance_lines = []
+        for line in lines:
+            if line.symbol == "g":
+                offset_eq = line.equation + clearance
+            else:
+                offset_eq = line.equation - clearance
+            clearance_lines.append(Line(offset_eq, line.symbol))
 
+        clearance_shape = Shape(clearance_lines)
+        clearance_only.add_shape(clearance_shape)
+    
     obstacle_list = [
         (100, 0, 10, 200),
         (200, 100, 10, 200),
@@ -319,6 +338,8 @@ def generate_map(clearance):
         for j in range(width):
             if obstacle.check_point_inside_shape_collection([j, i]):
                 canvas[i, j] = OBSTACLE_COLOR
+            elif clearance_only.check_point_inside_shape_collection([j, i]):
+                canvas[i, j] = CLEARANCE_COLOR  # ← CLEARANCE_COLOR (gray)    
                 
     print("Press q to close the window and continue...")
 
@@ -333,8 +354,8 @@ def ask_rpm():
     return(min(rpm1,rpm2),max(rpm1,rpm2))
 
 
-def run_astar(start_position,end_position,robot_radius=ROBOT_RADIUS,wheel_radius=WHEEL_RADIUS,distance_between_wheels=WHEEL_DISTANCE,
-              clearance=CLEARANCE,goal_threshold=DISTANCE_THRESHOLD,delta_time=DELTA_TIME,wheel_rpm_high=LOW_RPM,wheel_rpm_low=HIGH_RPM,visualization = False):
+def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wheel_radius=WHEEL_RADIUS,distance_between_wheels=WHEEL_DISTANCE,
+              goal_threshold=DISTANCE_THRESHOLD,delta_time=DELTA_TIME,wheel_rpm_high=LOW_RPM,wheel_rpm_low=HIGH_RPM,visualization = False):
     global WHEEL_DIAMETER ,ROBOT_RADIUS ,WHEEL_DISTANCE,WHEEL_RADIUS ,LOW_RPM ,HIGH_RPM ,DISTANCE_THRESHOLD ,DELTA_TIME ,CLEARANCE, ASTAR_MAP
     ROBOT_RADIUS = robot_radius
     WHEEL_RADIUS = wheel_radius
@@ -392,4 +413,4 @@ def ask_position_to_user(space_mask, position,location):
 
 if __name__ == "__main__":
     start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
-    path = run_astar(start_position,end_position,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,clearance=clearance,visualization=True)
+    path = run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=True)
