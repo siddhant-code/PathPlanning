@@ -1,12 +1,75 @@
 import time
 import math
-from functools import cache
+from functools import lru_cache
 import heapq
 import numpy as np
-from moviepy import ImageSequenceClip
+from sympy import symbols
+from itertools import tee
+from moviepy.editor import ImageSequenceClip
 import cv2
 import matplotlib.pyplot as plt
 
+# Defining symbols
+x,y,z,a,b,r = symbols("x,y,z,a,b,r")
+
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+# class to define lines
+class Line():
+  def __init__(self,equation,symbol) -> None:
+    self.equation = equation
+    self.symbol = symbol
+
+  # Function to check point lies on correct side of line
+  def check(self,point):
+    point = {x:point[0],y:point[1]}
+    value = self.equation.xreplace(point)
+    if self.symbol == "g":
+      return value >= 0
+    else:
+      return value < 0
+
+# class to define shape
+class Shape():
+  def __init__(self,lines) -> None:
+    self.lines = lines
+
+  #Function to add line to define shape
+  def add_line(self,line:Line):
+    self.lines.append(line)
+
+  # Function to check whether given point lies inside the shape
+  def check_point_inside_shape(self,point):
+    verdict = True
+    for line in self.lines:
+      verdict = verdict and line.check(point)
+      if not verdict:
+        break
+    return verdict
+
+# class to define shape collection by combining shapes
+class ShapeCollection():
+  def __init__(self,shapes) -> None:
+    self.shapes = shapes
+
+  # Function to add shape
+  def add_shape(self,shape:Shape):
+    self.shapes.append(shape)
+
+  # Function to check if point lies inside shape collection
+  def check_point_inside_shape_collection(self,point):
+    verdict = False
+    for shape in self.shapes:
+      verdict = verdict or shape.check_point_inside_shape(point)
+      if verdict:
+        break
+    return verdict
+
+height = 300
+width = 540
 wheel_diameter = 6.6 # in cm
 robot_radius = 22.0 # in cm
 wheel_distance = 28.7 # in cm
@@ -29,11 +92,15 @@ action_list = {
     'high_straight': (HIGH_RPM,HIGH_RPM)
 }
 
-@cache
+# Function to flip the y (origin)
+def flip_y(y):
+    return height - y - 1
+
+@lru_cache
 def calculate_wheel_velocity(rpm, radius = wheel_radius):
   return rpm * 2 * math.pi * radius / 60
 
-@cache
+@lru_cache
 def calculate_velocity(left_rpm,right_rpm):
   left_wheel_velocity = calculate_wheel_velocity(left_rpm) # mm / sec
   right_wheel_velocity = calculate_wheel_velocity(right_rpm)
@@ -45,7 +112,7 @@ def calculate_velocity(left_rpm,right_rpm):
     icc_radius = ( wheel_distance * linear_velocity )/(right_wheel_velocity - left_wheel_velocity)
   return {"linear":linear_velocity,"angular":angular_velocity,"icc_radius":icc_radius}
 
-@cache
+@lru_cache
 def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
     linear_velocity,angular_velocity, R = calculate_velocity(left_rpm,right_rpm).values()
     if angular_velocity == 0:
@@ -72,14 +139,15 @@ def calculate_heuristic(point1,point2):
 # Implement this
 def is_obstacle(point,space_mask):
     x , y = int(point[0]) , int(point[1])
+    flipped_y = flip_y(y)
     h,w = space_mask.shape
-    return  x < 0 or x >= w or y < 0 or y >= h or not space_mask[y][x]
+    return  x < 0 or x >= w or flipped_y < 0 or flipped_y >= h or not space_mask[flipped_y][x]
 
 
 def is_goal_node(node,goal_node,threshold = DISTANCE_THRESHOLD):
     return math.hypot(node[0] - goal_node[0],node[1] - goal_node[1]) < threshold
 
-@cache
+@lru_cache
 def get_vertices_for_curve(point1,action,resolution=10):
     x,y,theta = point1
     points = [(x,y)]
@@ -88,7 +156,7 @@ def get_vertices_for_curve(point1,action,resolution=10):
         points.append((x,y))
     return points
 
-@cache
+@lru_cache
 def check_angle_limit(dtheta):
     if dtheta >= math.pi :
         dtheta = -2*math.pi + dtheta
@@ -189,13 +257,73 @@ def write_to_video(frames,name:str):
     print(f"Video saved as {name}")
                                    
 def generate_map(clearance):
-    image = np.full(shape=(600,540,3),fill_value=BACKGROUND_COLOR,dtype=np.uint8)
-    image[29:300,20:200] = OBSTACLE_COLOR  # [ ylimit, xlimit]
-    return image
+    
+    print("Generating the map....")
+    
+    # Create obstacle collection
+    obstacle = ShapeCollection([])
+
+    # Add border (optional)
+    borders = [
+        Line(x - 0, "g"),
+        Line(x - clearance, "l"),
+        Line(x - width + clearance, "g"),
+        Line(x - width, "l"),
+        Line(y - 0, "g"),
+        Line(y - clearance, "l"),
+        Line(y - height + clearance, "g"),
+        Line(y - height, "l")
+    ]
+
+    border1 = Shape([borders[0], borders[1], borders[4], borders[7]])
+    border2 = Shape([borders[2], borders[3], borders[4], borders[7]])
+    border3 = Shape([borders[4], borders[5], borders[0], borders[3]])
+    border4 = Shape([borders[6], borders[7], borders[0], borders[3]])
+
+    obstacle.add_shape(border1)
+    obstacle.add_shape(border2)
+    obstacle.add_shape(border3)
+    obstacle.add_shape(border4)
+
+    # Add rectangles based on your sketch (converted mm to cm)
+    def add_rectangle(x1, y1, w, h):
+        lines = [
+            Line(x - x1, "g"),
+            Line(x - (x1 + w), "l"),
+            Line(y - y1, "g"),
+            Line(y - (y1 + h), "l")
+        ]
+        shape = Shape(lines)
+        obstacle.add_shape(shape)
+
+    obstacle_list = [
+        (100, 0, 10, 200),
+        (200, 100, 10, 200),
+        (300, 0, 10, 100),
+        (300, 200, 10, 100),
+        (400, 100, 10, 200)
+    ]
+
+    for o in obstacle_list:
+        add_rectangle(*o)
+
+    # Draw the map
+    canvas = np.full((height, width, 3), BACKGROUND_COLOR, dtype=np.uint8)
+    for i in range(height):
+        for j in range(width):
+            if obstacle.check_point_inside_shape_collection([j, i]):
+                canvas[i, j] = OBSTACLE_COLOR
+                
+    print("Press q to close the window and continue...")
+
+    plt.title("Workspace Map")
+    plt.imshow(canvas,origin="lower")
+    plt.show()            
+
+    return canvas
 
 def ask_rpm():
-    rpm1= int(input(f"Enter value for RPM 1:"))
-    rpm2= int(input(f"Enter value for RPM 2:"))
+    rpm1, rpm2 = map(int, input("\nEnter the 2 wheel RPM values in the form rpm1,rpm2: ").split(','))
     return(min(rpm1,rpm2),max(rpm1,rpm2))
 
 def run_astar():
@@ -203,13 +331,14 @@ def run_astar():
     space_mask = generate_space_map(astar_map)
     start_position = ask_position_to_user(space_mask, None,"start")
     end_position = ask_position_to_user(space_mask, None,"end") + (0,) # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
+    
     delta_time = DELTA_TIME
     global LOW_RPM,HIGH_RPM 
     LOW_RPM,HIGH_RPM = ask_rpm()
     start = time.time()
     path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=astar_map)
     if path is not None:
-        print("Total time:",time.time()-start)
+        print("\nTotal time:",time.time()-start)
         print("Preparing visualization...")
         frames = visualize(astar_map,path,exploration_tree)
         write_to_video(frames,"sample.mp4")
@@ -218,29 +347,21 @@ def run_astar():
 def ask_position_to_user(space_mask, position,location):
     if location == "start":
         size = 3
-        message = "Enter x(cm),y(cm),theta(radians) for start position:"
+        message = "\nEnter the start coordinates in the form x,y,theta: "
     if location == "end":
         size = 2
-        message = "Enter x(cm),y(cm) for end position:"
+        message = "\nEnter the goal coordinates in the form x,y: "
     while position is None:
         position = tuple(map(int, input(message).split(',')))
         if not is_obstacle(position,space_mask) and len(position) == size:
             return position
         else:
+            print("\nInvalid position.") 
             position = None
     
     
 
 if __name__ == "__main__":
+    
     run_astar()
-    # start = time.time()
-    # start_position = 4,4,math.pi/2
-    # end_position = 330,490,0
-    # image = generate_map(clearance=2)
-    # path,exploration_tree = a_star(start_position,end_position,DELTA_TIME,canvas_image=image)
-    # if path is not None:
-    #     print("Total time:",time.time()-start)
-    #     print("Preparing visualization...")
-    #     frames = visualize(image,path,exploration_tree)
-    #     write_to_video(frames,"sample.mp4")
     
