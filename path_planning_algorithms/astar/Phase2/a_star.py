@@ -251,16 +251,20 @@ def visualize(image,path,exploration_tree):
             frames.append(image.copy())
     return frames
 
-def write_to_video(frames,name:str):
+def write_to_video(frames, name: str):
     if not name.endswith(".mp4"):
         name = name + ".mp4"
-    clip = ImageSequenceClip(frames, fps=24)
+
+    # Flip each frame vertically (top → bottom)
+    flipped_frames = [cv2.flip(frame, 0) for frame in frames]
+
+    clip = ImageSequenceClip(flipped_frames, fps=24)
     clip.write_videofile(name)
     print(f"Video saved as {name}")
                                    
 def generate_map(clearance):
     
-    print("Generating the map....")
+    print("\nGenerating the map....")
     
     # Create obstacle collection
     obstacle = ShapeCollection([])
@@ -348,13 +352,12 @@ def run_astar(start_position,end_position,robot_radius=ROBOT_RADIUS,wheel_radius
         print("\nTotal time:",time.time()-start)
         print("Preparing visualization...")
         frames = visualize(ASTAR_MAP,path,exploration_tree)
-        write_to_video(frames,"sample.mp4")
+        write_to_video(frames,"output.mp4")
     return path
         
 
 def gather_inputs():
     clearance = ask_clearance()
-    print("Generating map...")
     global ASTAR_MAP
     ASTAR_MAP = generate_map(clearance).copy()
     space_mask = generate_space_map(ASTAR_MAP)
@@ -365,9 +368,9 @@ def gather_inputs():
     
 def ask_clearance():
     try:
-        clearance = int(input("Give a value for clearance with consideration of robot radius:"))
+        clearance = int(input("Give a value for clearance with consideration of robot radius: "))
     except Exception as e:
-        print("Error setting custom clearance")
+        print("Error setting custom clearance!")
         clearance = CLEARANCE  
     return clearance
 
