@@ -70,16 +70,18 @@ class ShapeCollection():
 
 height = 300
 width = 540
-wheel_diameter = 6.6 # in cm
-robot_radius = 22.0 # in cm
-wheel_distance = 28.7 # in cm
-wheel_radius = wheel_diameter/2
+WHEEL_DIAMETER = 6.6 # in cm
+ROBOT_RADIUS = 22.0 # in cm
+WHEEL_DISTANCE = 28.7 # in cm
+WHEEL_RADIUS = WHEEL_DIAMETER/2
 LOW_RPM = 50 # default radian/s
 HIGH_RPM = 100 # default radian/s
 DISTANCE_THRESHOLD = 2 # cm
 DELTA_TIME = 1
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (0,0,0)
+CLEARANCE = 3
+ASTAR_MAP = None
 
 action_list = {
     'low_left': (0,LOW_RPM),
@@ -97,7 +99,7 @@ def flip_y(y):
     return height - y - 1
 
 @lru_cache
-def calculate_wheel_velocity(rpm, radius = wheel_radius):
+def calculate_wheel_velocity(rpm, radius = WHEEL_RADIUS):
   return rpm * 2 * math.pi * radius / 60
 
 @lru_cache
@@ -105,11 +107,11 @@ def calculate_velocity(left_rpm,right_rpm):
   left_wheel_velocity = calculate_wheel_velocity(left_rpm) # mm / sec
   right_wheel_velocity = calculate_wheel_velocity(right_rpm)
   linear_velocity =  (left_wheel_velocity + right_wheel_velocity) / 2
-  angular_velocity = (right_wheel_velocity - left_wheel_velocity) / wheel_distance
+  angular_velocity = (right_wheel_velocity - left_wheel_velocity) / WHEEL_DISTANCE
   if left_rpm == right_rpm:
     icc_radius = None
   else:
-    icc_radius = ( wheel_distance * linear_velocity )/(right_wheel_velocity - left_wheel_velocity)
+    icc_radius = ( WHEEL_DISTANCE * linear_velocity )/(right_wheel_velocity - left_wheel_velocity)
   return {"linear":linear_velocity,"angular":angular_velocity,"icc_radius":icc_radius}
 
 @lru_cache
@@ -326,23 +328,48 @@ def ask_rpm():
     rpm1, rpm2 = map(int, input("\nEnter the 2 wheel RPM values in the form rpm1,rpm2: ").split(','))
     return(min(rpm1,rpm2),max(rpm1,rpm2))
 
-def run_astar():
-    astar_map = generate_map(clearance=2)
-    space_mask = generate_space_map(astar_map)
-    start_position = ask_position_to_user(space_mask, None,"start")
-    end_position = ask_position_to_user(space_mask, None,"end") + (0,) # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
-    
-    delta_time = DELTA_TIME
-    global LOW_RPM,HIGH_RPM 
-    LOW_RPM,HIGH_RPM = ask_rpm()
+
+def run_astar(start_position,end_position,robot_radius=ROBOT_RADIUS,wheel_radius=WHEEL_RADIUS,distance_between_wheels=WHEEL_DISTANCE,
+              clearance=CLEARANCE,goal_threshold=DISTANCE_THRESHOLD,delta_time=DELTA_TIME,wheel_rpm_high=LOW_RPM,wheel_rpm_low=HIGH_RPM,visualization = False):
+    global WHEEL_DIAMETER ,ROBOT_RADIUS ,WHEEL_DISTANCE,WHEEL_RADIUS ,LOW_RPM ,HIGH_RPM ,DISTANCE_THRESHOLD ,DELTA_TIME ,CLEARANCE, ASTAR_MAP
+    ROBOT_RADIUS = robot_radius
+    WHEEL_RADIUS = wheel_radius
+    WHEEL_DISTANCE = distance_between_wheels
+    CLEARANCE = clearance
+    DISTANCE_THRESHOLD = goal_threshold
+    DELTA_TIME = delta_time
+    LOW_RPM = wheel_rpm_low
+    HIGH_RPM = wheel_rpm_high
+    if ASTAR_MAP is None:
+        ASTAR_MAP = generate_map(clearance).copy()
     start = time.time()
-    path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=astar_map)
-    if path is not None:
+    path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=ASTAR_MAP)
+    if path is not None and visualization:
         print("\nTotal time:",time.time()-start)
         print("Preparing visualization...")
-        frames = visualize(astar_map,path,exploration_tree)
+        frames = visualize(ASTAR_MAP,path,exploration_tree)
         write_to_video(frames,"sample.mp4")
+    return path
+        
+
+def gather_inputs():
+    clearance = ask_clearance()
+    print("Generating map...")
+    global ASTAR_MAP
+    ASTAR_MAP = generate_map(clearance).copy()
+    space_mask = generate_space_map(ASTAR_MAP)
+    start_position = ask_position_to_user(space_mask, None,"start")
+    end_position = ask_position_to_user(space_mask, None,"end") + (0,) # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
+    low_rpm,high_rpm = ask_rpm()
+    return start_position,end_position,low_rpm,high_rpm,clearance
     
+def ask_clearance():
+    try:
+        clearance = int(input("Give a value for clearance with consideration of robot radius:"))
+    except Exception as e:
+        print("Error setting custom clearance")
+        clearance = CLEARANCE  
+    return clearance
 
 def ask_position_to_user(space_mask, position,location):
     if location == "start":
@@ -358,10 +385,8 @@ def ask_position_to_user(space_mask, position,location):
         else:
             print("\nInvalid position.") 
             position = None
-    
-    
+   
 
 if __name__ == "__main__":
-    
-    run_astar()
-    
+    start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
+    path = run_astar(start_position,end_position,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,clearance=clearance,visualization=True)
