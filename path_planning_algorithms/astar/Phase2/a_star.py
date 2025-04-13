@@ -4,7 +4,7 @@ from functools import lru_cache
 import heapq
 import numpy as np
 from sympy import symbols
-from moviepy import ImageSequenceClip
+from moviepy.editor import ImageSequenceClip
 import cv2
 import matplotlib.pyplot as plt
 
@@ -261,6 +261,8 @@ def write_to_video(frames, name: str):
     print(f"Video saved as {name}")
                                    
 def generate_map(clearance):
+    # Scaling the robot_radius for now - else it's taking up the whole space
+    clearance = clearance + ROBOT_RADIUS % 10
     
     print("\nGenerating the map....")
     
@@ -324,7 +326,7 @@ def generate_map(clearance):
         (200, 100, 10, 200),
         (300, 0, 10, 100),
         (300, 200, 10, 100),
-        (400, 100, 10, 200)
+        (400, 0, 10, 200)
     ]
 
     for o in obstacle_list:
