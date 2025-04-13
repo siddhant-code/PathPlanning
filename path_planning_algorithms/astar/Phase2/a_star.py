@@ -63,7 +63,7 @@ class ShapeCollection():
     return verdict
 
 height = 300
-width = 740
+width = 740 # Added 200 padding for better usage
 WHEEL_DIAMETER = 6.6 # in cm
 ROBOT_RADIUS = 22.0 # in cm
 WHEEL_DISTANCE = 28.7 # in cm
