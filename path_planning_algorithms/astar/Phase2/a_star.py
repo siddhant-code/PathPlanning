@@ -70,7 +70,7 @@ WHEEL_DISTANCE = 28.7 # in cm
 WHEEL_RADIUS = WHEEL_DIAMETER/2
 LOW_RPM = 50 # default radian/s
 HIGH_RPM = 100 # default radian/s
-DISTANCE_THRESHOLD = 5 # cm
+DISTANCE_THRESHOLD = 2 # cm
 DELTA_TIME = 1
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (0,0,0)
@@ -122,7 +122,7 @@ def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
         theta_new = theta + angle_turned
         theta_new = check_angle_limit(theta_new)
         
-    return (x_new// 0.4) * 0.4,(y_new//0.4) * 0.4,theta_new
+    return (x_new// 0.2) * 0.2,(y_new//0.2) * 0.2,theta_new
 
 def get_children(x,y,theta):
     return {action:get_next_position(x,y,theta,*action_list[action]) for action in action_list.keys()}
@@ -130,7 +130,6 @@ def get_children(x,y,theta):
 def calculate_heuristic(point1,point2):
     return math.hypot(point1[0] - point2[0],point1[1] - point2[1]) / calculate_wheel_velocity(HIGH_RPM)
 
-# Implement this
 def is_obstacle(point,space_mask):
     x , y = int(point[0]) , int(point[1])
     h,w = space_mask.shape
@@ -206,15 +205,12 @@ def a_star(start_position,end_position,delta_time,canvas_image):
             else:
                 explored_nodes[node].append((action,child_node))
                 time_to_come = time_to_come_to_node[node[:2]] + delta_time
-                if child_node[:2] in time_to_come_to_node:
-                    if time_to_come_to_node[child_node[:2]] < time_to_come:
-                        time_to_come_to_node[child_node[:2]] = time_to_come
-                        node_list[child_node[:2]] = node,action
-                else:
+                if time_to_come_to_node.get(child_node[:2],math.inf) > time_to_come:
+                #if child_node[:2] not in time_to_come_to_node or time_to_come_to_node[child_node[:2]] > time_to_come:
                     time_to_come_to_node[child_node[:2]] = time_to_come
                     node_list[child_node[:2]] = node,action
-                total_time = time_to_come_to_node[child_node[:2]] + calculate_heuristic(child_node,end_position)
-                heapq.heappush(open_list,(total_time,child_node))
+                    total_time = time_to_come+ calculate_heuristic(child_node,end_position)
+                    heapq.heappush(open_list,(total_time,child_node))
     print("No path found") 
     return None,None
 
@@ -260,9 +256,6 @@ def visualize(image,path,exploration_tree):
 def write_to_video(frames, name: str):
     if not name.endswith(".mp4"):
         name = name + ".mp4"
-
-    # Flip each frame vertically (top → bottom)
-    #flipped_frames = [cv2.flip(frame, 0) for frame in frames]
 
     clip = ImageSequenceClip(frames, fps=24)
     clip.write_videofile(name)
@@ -353,7 +346,7 @@ def generate_map(clearance):
     plt.imshow(canvas,origin="lower")
     plt.show()            
 
-    return canvas
+    return np.flipud(canvas)
 
 def ask_rpm():
     rpm1, rpm2 = map(int, input("\nEnter the 2 wheel RPM values in the form rpm1,rpm2: ").split(','))
