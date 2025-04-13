@@ -122,7 +122,7 @@ def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
         theta_new = theta + angle_turned
         theta_new = check_angle_limit(theta_new)
         
-    return (x_new// 0.2) * 0.2,(y_new//0.2) * 0.2,theta_new
+    return (x_new// 0.4) * 0.4,(y_new//0.4) * 0.4,theta_new
 
 def get_children(x,y,theta):
     return {action:get_next_position(x,y,theta,*action_list[action]) for action in action_list.keys()}
@@ -149,6 +149,11 @@ def get_vertices_for_curve(point1,action,resolution=10):
     return points
 
 def transform_coordinate(position):
+    if len(position) == 2:
+        theta = 0
+    else:
+        theta = position[2]
+    return (position[0],position[1] + height/2,theta)
     x,y = position[0],position[1]
     if len(position) == 2:
         theta = 0
@@ -227,8 +232,8 @@ def get_velocities_for_ros(path):
     vel = []
     for action in actions:
         velocity = calculate_velocity(*action_list[action])
-        velocity["linear"] = velocity["linear"] / 100  # Coverting cm/s to m/s
-        velocity.pop("icc_radius")
+        velocity["linear"] = velocity["linear"]/100  # 10 cm/s in grid is equivalent to 1 m/s in real world, so need to scale the speed
+        #velocity.pop("icc_radius")
         vel.append(velocity)       
     return vel  
 
@@ -256,8 +261,8 @@ def visualize(image,path,exploration_tree):
 def write_to_video(frames, name: str):
     if not name.endswith(".mp4"):
         name = name + ".mp4"
-
-    clip = ImageSequenceClip(frames, fps=24)
+    flipped_frames = [cv2.flip(frame, 0) for frame in frames]
+    clip = ImageSequenceClip(flipped_frames, fps=24)
     clip.write_videofile(name)
     print(f"Video saved as {name}")
                                    
@@ -346,7 +351,7 @@ def generate_map(clearance):
     plt.imshow(canvas,origin="lower")
     plt.show()            
 
-    return np.flipud(canvas)
+    return canvas
 
 def ask_rpm():
     rpm1, rpm2 = map(int, input("\nEnter the 2 wheel RPM values in the form rpm1,rpm2: ").split(','))
@@ -409,6 +414,7 @@ def ask_position_to_user(space_mask, position,location):
             position = None
    
 
-if __name__ == "__main__":
+if __name__ == "__main__":   
     start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
     path = run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=True)
+    print(get_velocities_for_ros(path))
