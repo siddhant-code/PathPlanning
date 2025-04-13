@@ -70,12 +70,13 @@ WHEEL_DISTANCE = 28.7 # in cm
 WHEEL_RADIUS = WHEEL_DIAMETER/2
 LOW_RPM = 50 # default radian/s
 HIGH_RPM = 100 # default radian/s
-DISTANCE_THRESHOLD = 2 # cm
+DISTANCE_THRESHOLD = 5 # cm
 DELTA_TIME = 1
 BACKGROUND_COLOR = (232,215,241)
 OBSTACLE_COLOR = (0,0,0)
 CLEARANCE_COLOR = (100,100,100)
 ASTAR_MAP = None
+CLEARANCE = 10
 
 action_list = {
     'low_left': (0,LOW_RPM),
@@ -121,7 +122,7 @@ def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
         theta_new = theta + angle_turned
         theta_new = check_angle_limit(theta_new)
         
-    return x_new,y_new,theta_new
+    return (x_new// 0.5) * 0.5,(y_new//0.5) * 0.5,theta_new
 
 def get_children(x,y,theta):
     return {action:get_next_position(x,y,theta,*action_list[action]) for action in action_list.keys()}
@@ -262,9 +263,9 @@ def write_to_video(frames, name: str):
         name = name + ".mp4"
 
     # Flip each frame vertically (top → bottom)
-    flipped_frames = [cv2.flip(frame, 0) for frame in frames]
+    #flipped_frames = [cv2.flip(frame, 0) for frame in frames]
 
-    clip = ImageSequenceClip(flipped_frames, fps=24)
+    clip = ImageSequenceClip(frames, fps=24)
     clip.write_videofile(name)
     print(f"Video saved as {name}")
                                    
