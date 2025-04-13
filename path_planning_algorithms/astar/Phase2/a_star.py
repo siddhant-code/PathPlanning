@@ -154,19 +154,14 @@ def transform_coordinate(position):
     else:
         theta = position[2]
     return (position[0],position[1] + height/2,theta)
-    x,y = position[0],position[1]
+
+def inverse_transform_coordinate(position):
     if len(position) == 2:
         theta = 0
     else:
         theta = position[2]
-    a = np.matrix([[1,0,0,0],
-                   [0,np.cos(np.pi),-np.sin(np.pi),height/2],
-                   [0,np.sin(np.pi),np.cos(np.pi),0],
-                   [0,0,0,1]])
-    b = np.array([x,y,0,1])
-    transform = np.matmul(a,b)
-    transform = np.ravel(transform)
-    return (transform[0],transform[1],-theta)
+    return (position[0],position[1] - height/2,theta)
+    
 
 @lru_cache
 def check_angle_limit(dtheta):
@@ -227,15 +222,12 @@ def get_path_falcon_simulation_path(path):
     arr = np.array(list(map(lambda x:x[0],path)))
     return np.diff(arr,axis=0)
 
-def get_velocities_for_ros(path):
-    actions =  list(map(lambda x:x[1],path[:-1]))
-    vel = []
-    for action in actions:
-        velocity = calculate_velocity(*action_list[action])
-        velocity["linear"] = velocity["linear"]/100  # 10 cm/s in grid is equivalent to 1 m/s in real world, so need to scale the speed
-        #velocity.pop("icc_radius")
-        vel.append(velocity)       
-    return vel  
+def get_waypoints_for_ros(path):
+    waypoints =  get_inverse_transformed_path(path)    
+    return waypoints 
+
+def get_inverse_transformed_path(path):
+    return list(map(lambda x:inverse_transform_coordinate(x[0]),path))
 
 def draw_curve(image,point,action,color):  
     vertices = get_vertices_for_curve(point,action)
@@ -417,4 +409,5 @@ def ask_position_to_user(space_mask, position,location):
 if __name__ == "__main__":   
     start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
     path = run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=True)
-    print(get_velocities_for_ros(path))
+    transformed_path = get_inverse_transformed_path(path)
+    print("Path:",transformed_path)
