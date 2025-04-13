@@ -4,18 +4,12 @@ from functools import lru_cache
 import heapq
 import numpy as np
 from sympy import symbols
-from itertools import tee
-from moviepy.editor import ImageSequenceClip
+from moviepy import ImageSequenceClip
 import cv2
 import matplotlib.pyplot as plt
 
 # Defining symbols
 x,y,z,a,b,r = symbols("x,y,z,a,b,r")
-
-def pairwise(iterable):
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
 
 # class to define lines
 class Line():
@@ -126,10 +120,7 @@ def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
         y_new = y + k*math.sin(theta + angle_turned/2)
         theta_new = theta + angle_turned
         theta_new = check_angle_limit(theta_new)
-        # if theta_new >= math.pi :
-        #     theta_new = -2*math.pi + theta_new
-        # elif theta_new < -math.pi:
-        #     theta_new = 2*math.pi + theta_new
+        
     return x_new,y_new,theta_new
 
 def get_children(x,y,theta):
@@ -157,6 +148,21 @@ def get_vertices_for_curve(point1,action,resolution=10):
         x,y,theta = get_next_position(x,y,theta,*action_list[action],DELTA_TIME/resolution)
         points.append((x,y))
     return points
+
+def transform_coordinate(position):
+    x,y = position[0],position[1]
+    if len(position) == 2:
+        theta = 0
+    else:
+        theta = position[2]
+    a = np.matrix([[1,0,0,0],
+                   [0,np.cos(np.pi),-np.sin(np.pi),height/2],
+                   [0,np.sin(np.pi),np.cos(np.pi),0],
+                   [0,0,0,1]])
+    b = np.array([x,y,0,1])
+    transform = np.matmul(a,b)
+    transform = np.ravel(transform)
+    return (transform[0],transform[1],-theta)
 
 @lru_cache
 def check_angle_limit(dtheta):
@@ -372,7 +378,7 @@ def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wh
     if path is not None and visualization:
         print("\nTotal time:",time.time()-start)
         print("Preparing visualization...")
-        frames = visualize(ASTAR_MAP,path,exploration_tree)
+        frames = visualize(np.flipud(ASTAR_MAP).astype(np.uint8),path,exploration_tree)
         write_to_video(frames,"output.mp4")
     return path
         
@@ -397,14 +403,13 @@ def ask_clearance():
 
 def ask_position_to_user(space_mask, position,location):
     if location == "start":
-        size = 3
         message = "\nEnter the start coordinates in the form x,y,theta: "
     if location == "end":
-        size = 2
         message = "\nEnter the goal coordinates in the form x,y: "
     while position is None:
-        position = tuple(map(int, input(message).split(',')))
-        if not is_obstacle(position,space_mask) and len(position) == size:
+        position = tuple(map(float, input(message).split(',')))
+        position = transform_coordinate(position)
+        if not is_obstacle(position,space_mask):
             return position
         else:
             print("\nInvalid position.") 
