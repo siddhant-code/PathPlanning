@@ -122,7 +122,7 @@ def get_next_position(x,y,theta,left_rpm,right_rpm,dt=DELTA_TIME):
         theta_new = theta + angle_turned
         theta_new = check_angle_limit(theta_new)
         
-    return (x_new// 0.5) * 0.5,(y_new//0.5) * 0.5,theta_new
+    return (x_new// 0.4) * 0.4,(y_new//0.4) * 0.4,theta_new
 
 def get_children(x,y,theta):
     return {action:get_next_position(x,y,theta,*action_list[action]) for action in action_list.keys()}
@@ -133,9 +133,8 @@ def calculate_heuristic(point1,point2):
 # Implement this
 def is_obstacle(point,space_mask):
     x , y = int(point[0]) , int(point[1])
-    flipped_y = flip_y(y)
     h,w = space_mask.shape
-    return  x < 0 or x >= w or flipped_y < 0 or flipped_y >= h or not space_mask[flipped_y][x]
+    return  x < 0 or x >= w or y < 0 or y >= h or not space_mask[y][x]
 
 
 def is_goal_node(node,goal_node,threshold = DISTANCE_THRESHOLD):
@@ -207,7 +206,7 @@ def a_star(start_position,end_position,delta_time,canvas_image):
             else:
                 explored_nodes[node].append((action,child_node))
                 time_to_come = time_to_come_to_node[node[:2]] + delta_time
-                if child_node in time_to_come_to_node:
+                if child_node[:2] in time_to_come_to_node:
                     if time_to_come_to_node[child_node[:2]] < time_to_come:
                         time_to_come_to_node[child_node[:2]] = time_to_come
                         node_list[child_node[:2]] = node,action
@@ -379,7 +378,7 @@ def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wh
     if path is not None and visualization:
         print("\nTotal time:",time.time()-start)
         print("Preparing visualization...")
-        frames = visualize(np.flipud(ASTAR_MAP).astype(np.uint8),path,exploration_tree)
+        frames = visualize(ASTAR_MAP,path,exploration_tree)
         write_to_video(frames,"output.mp4")
     return path
         
