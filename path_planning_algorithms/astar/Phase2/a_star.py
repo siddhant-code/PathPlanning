@@ -77,6 +77,8 @@ OBSTACLE_COLOR = (0,0,0)
 CLEARANCE_COLOR = (100,100,100)
 ASTAR_MAP = None
 CLEARANCE = 10
+OFFSET_X = 0
+OFFSET_Y = height/2
 
 action_list = {
     'low_left': (0,LOW_RPM),
@@ -153,14 +155,14 @@ def transform_coordinate(position):
         theta = 0
     else:
         theta = position[2]
-    return (position[0],position[1] + height/2,theta)
+    return (position[0] + OFFSET_X,position[1] + OFFSET_Y,theta)
 
 def inverse_transform_coordinate(position):
     if len(position) == 2:
         theta = 0
     else:
         theta = position[2]
-    return (position[0],position[1] - height/2,theta)
+    return (position[0] - OFFSET_X,position[1] - OFFSET_Y,theta)
     
 
 @lru_cache
