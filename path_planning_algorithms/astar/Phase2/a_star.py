@@ -4,7 +4,7 @@ from functools import lru_cache
 import heapq
 import numpy as np
 from sympy import symbols
-from moviepy.editor import ImageSequenceClip
+from moviepy import ImageSequenceClip
 import cv2
 import matplotlib.pyplot as plt
 
@@ -77,19 +77,9 @@ OBSTACLE_COLOR = (0,0,0)
 CLEARANCE_COLOR = (100,100,100)
 ASTAR_MAP = None
 CLEARANCE = 10
-OFFSET_X = 0
+OFFSET_X = 100
 OFFSET_Y = height/2
-
-action_list = {
-    'low_left': (0,LOW_RPM),
-    'high_left': (0,HIGH_RPM),
-    'low_right': (LOW_RPM,0),
-    'high_right': (HIGH_RPM,0),
-    'low_straight': (LOW_RPM,LOW_RPM),
-    'mid_left': (LOW_RPM,HIGH_RPM),
-    'mid_right': (HIGH_RPM,LOW_RPM),
-    'high_straight': (HIGH_RPM,HIGH_RPM)
-}
+action_list = None
 
 # Function to flip the y (origin)
 def flip_y(y):
@@ -360,7 +350,7 @@ def ask_rpm():
 
 def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wheel_radius=WHEEL_RADIUS,distance_between_wheels=WHEEL_DISTANCE,
               goal_threshold=DISTANCE_THRESHOLD,delta_time=DELTA_TIME,wheel_rpm_high=LOW_RPM,wheel_rpm_low=HIGH_RPM,visualization = False):
-    global WHEEL_DIAMETER ,ROBOT_RADIUS ,WHEEL_DISTANCE,WHEEL_RADIUS ,LOW_RPM ,HIGH_RPM ,DISTANCE_THRESHOLD ,DELTA_TIME ,CLEARANCE, ASTAR_MAP
+    global WHEEL_DIAMETER ,ROBOT_RADIUS ,WHEEL_DISTANCE,WHEEL_RADIUS ,LOW_RPM ,HIGH_RPM ,DISTANCE_THRESHOLD ,DELTA_TIME ,CLEARANCE, ASTAR_MAP,action_list
     ROBOT_RADIUS = robot_radius
     WHEEL_RADIUS = wheel_radius
     WHEEL_DISTANCE = distance_between_wheels
@@ -371,6 +361,17 @@ def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wh
     HIGH_RPM = wheel_rpm_high
     if ASTAR_MAP is None:
         ASTAR_MAP = generate_map(clearance).copy()
+    
+    action_list = {
+        'low_left': (0,LOW_RPM),
+        'high_left': (0,HIGH_RPM),
+        'low_right': (LOW_RPM,0),
+        'high_right': (HIGH_RPM,0),
+        'low_straight': (LOW_RPM,LOW_RPM),
+        'mid_left': (LOW_RPM,HIGH_RPM),
+        'mid_right': (HIGH_RPM,LOW_RPM),
+        'high_straight': (HIGH_RPM,HIGH_RPM)
+    }
     start = time.time()
     path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=ASTAR_MAP)
     if path is not None and visualization:
