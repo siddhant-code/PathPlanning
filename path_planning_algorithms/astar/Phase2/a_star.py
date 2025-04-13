@@ -63,7 +63,7 @@ class ShapeCollection():
     return verdict
 
 height = 300
-width = 540
+width = 740
 WHEEL_DIAMETER = 6.6 # in cm
 ROBOT_RADIUS = 22.0 # in cm
 WHEEL_DISTANCE = 28.7 # in cm
@@ -320,16 +320,19 @@ def generate_map(clearance):
         clearance_only.add_shape(clearance_shape)
     
     obstacle_list = [
-        (100, 0, 10, 200),
-        (200, 100, 10, 200),
-        (300, 0, 10, 100),
-        (300, 200, 10, 100),
-        (400, 0, 10, 200)
+        (200, 0, 10, 200),
+        (300, 100, 10, 200),
+        (400, 0, 10, 100),
+        (400, 200, 10, 100),
+        (500, 0, 10, 200)
     ]
 
     for o in obstacle_list:
         add_rectangle(*o)
 
+    # padding = 100  # in cm
+    # canvas_width = width + 2 * padding
+    
     # Draw the map
     canvas = np.full((height, width, 3), BACKGROUND_COLOR, dtype=np.uint8)
     for i in range(height):
@@ -343,6 +346,7 @@ def generate_map(clearance):
 
     plt.title("Workspace Map")
     plt.imshow(canvas,origin="lower")
+    plt.axis("off")
     plt.show()            
 
     return canvas
