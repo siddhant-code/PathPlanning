@@ -259,8 +259,8 @@ def write_to_video(frames, name: str):
     print(f"Video saved as {name}")
                                    
 def generate_map(clearance):
-    
-    clearance = clearance + ROBOT_RADIUS
+    # Scaling the robot_radius for now - else it's taking up the whole space
+    clearance = clearance + ROBOT_RADIUS % 10
     
     print("\nGenerating the map....")
     
