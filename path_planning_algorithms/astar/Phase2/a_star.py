@@ -224,7 +224,7 @@ def get_path_falcon_simulation_path(path):
 
 def get_waypoints_for_ros(path):
     waypoints =  get_inverse_transformed_path(path)    
-    return waypoints 
+    return [(waypoint[0]/100,waypoint[1]/100,waypoint[2]) for waypoint in waypoints] # converting from cm to m
 
 def get_inverse_transformed_path(path):
     return list(map(lambda x:inverse_transform_coordinate(x[0]),path))
