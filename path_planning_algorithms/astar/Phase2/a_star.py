@@ -374,8 +374,6 @@ def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wh
         'high_straight': (HIGH_RPM,HIGH_RPM)
     }
     start = time.time()
-    start_position = transform_coordinate(start_position)
-    end_position = transform_coordinate(end_position)
     path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=ASTAR_MAP)
     if path is not None and visualization:
         print("\nTotal time:",time.time()-start)
