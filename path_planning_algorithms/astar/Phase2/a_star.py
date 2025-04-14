@@ -62,8 +62,7 @@ class ShapeCollection():
         break
     return verdict
 
-height = 300
-width = 740 # Added 200 padding for better usage
+
 WHEEL_DIAMETER = 6.6 # in cm
 ROBOT_RADIUS = 22.0 # in cm
 WHEEL_DISTANCE = 28.7 # in cm
@@ -77,7 +76,9 @@ OBSTACLE_COLOR = (0,0,0)
 CLEARANCE_COLOR = (100,100,100)
 ASTAR_MAP = None
 CLEARANCE = 10
-OFFSET_X = 100
+height = 300
+OFFSET_X = 50
+width = OFFSET_X + 540 + 100 # Added padding for better usage
 OFFSET_Y = height/2
 action_list = None
 
@@ -212,7 +213,7 @@ def generate_space_map(canvas_image):
     
 def get_path_falcon_simulation_path(path):
     arr = np.array(list(map(lambda x:x[0],path)))
-    return np.diff(arr,axis=0)
+    return np.diff(arr,axis=0)*np.array([1,-1,1])
 
 def get_waypoints_for_ros(path):
     waypoints =  get_inverse_transformed_path(path)    
@@ -312,11 +313,11 @@ def generate_map(clearance):
         clearance_only.add_shape(clearance_shape)
     
     obstacle_list = [
-        (200, 0, 10, 200),
-        (300, 100, 10, 200),
-        (400, 0, 10, 100),
-        (400, 200, 10, 100),
-        (500, 0, 10, 200)
+        (100 + OFFSET_X, 0, 10, 200),
+        (200 + OFFSET_X, 100, 10, 200),
+        (300 + OFFSET_X, 0, 10, 100),
+        (300 + OFFSET_X, 200, 10, 100),
+        (400 + OFFSET_X, 0, 10, 200)
     ]
 
     for o in obstacle_list:
@@ -373,6 +374,8 @@ def run_astar(start_position,end_position,clearance,robot_radius=ROBOT_RADIUS,wh
         'high_straight': (HIGH_RPM,HIGH_RPM)
     }
     start = time.time()
+    start_position = transform_coordinate(start_position)
+    end_position = transform_coordinate(end_position)
     path,exploration_tree = a_star(start_position,end_position,delta_time,canvas_image=ASTAR_MAP)
     if path is not None and visualization:
         print("\nTotal time:",time.time()-start)
@@ -414,7 +417,6 @@ def ask_position_to_user(space_mask, position,location):
             print("\nInvalid position.") 
             position = None
    
-
 if __name__ == "__main__":   
     start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
     path = run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=True)
