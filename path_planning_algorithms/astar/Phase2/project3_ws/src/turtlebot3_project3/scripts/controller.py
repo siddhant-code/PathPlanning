@@ -333,9 +333,8 @@ def visualize(image, path, exploration_tree):
 
 
 def generate_map(clearance):
-    #return np.load("map.npy")
-    # Scaling the robot_radius for now - else it's taking up the whole space
-    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearnce to cm
+    
+    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearance to cm
     
 
     print("\nGenerating the map....")
@@ -548,8 +547,8 @@ def ask_position_to_user(space_mask, position, location):
         )
     while position is None:
         position = tuple(map(float, input(message).split(",")))
-        position = transform_coordinate(position)
-        if not is_obstacle(position, space_mask):
+        position = transform_coordinate(position)  # convert coordinate system frame to lower bottom origin
+        if not is_obstacle(position, space_mask): # Check if position is in obstacle space
             return position
         else:
             print("\nInvalid position.")
@@ -561,13 +560,10 @@ class RobotAStarPlannerNode(Node):
         self.get_logger().info(f'READY AStar Planner')
         start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
         waypoints = list(run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=False))
-        print(waypoints)
         path = list(get_simulation_path(waypoints))
         path.append([0.0,0.0,0.0]) # Adding this so robot should stop after reaching goal
         self.get_logger().info(f'Path 1 Planned')
-        
-        self.state = 0
-
+       
         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)        
         self.planned_path = path
         self.delta_time = 1
@@ -581,6 +577,7 @@ class RobotAStarPlannerNode(Node):
         self.timer = self.create_timer(1, self.on_timer)
         self.get_logger().info(f'READY AStar Node')
 
+    # Call functioin after each 1 second
     def on_timer(self):
              
             if len(self.planned_path)>0:        
@@ -592,12 +589,14 @@ class RobotAStarPlannerNode(Node):
                 self.current_twist.linear.y = 0.0
                 self.current_twist.angular.z = 0.0
                 self.publisher.publish(self.current_twist)
+                rclpy.shutdown()
+                return
         
-
+    # Publish velocity
     def publish_twist_cmd(self, planned_path):
         x_vel = (planned_path[0][0]/self.delta_time)
         y_vel = (planned_path[0][1]/self.delta_time)
-        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) / 100 # Converting to m/c
+        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) / 100 # Converting to m/sq
         self.current_twist.linear.y = 0.0
         self.current_twist.angular.z = float(planned_path[0][2]/self.delta_time)
         self.publisher.publish(self.current_twist)

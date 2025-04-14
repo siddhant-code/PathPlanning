@@ -340,8 +340,8 @@ def write_to_video(frames, name: str):
 
 
 def generate_map(clearance):
-    # Scaling the robot_radius for now - else it's taking up the whole space
-    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearnce to cm
+    
+    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearance to cm
 
     print("\nGenerating the map....")
 
@@ -556,8 +556,8 @@ def ask_position_to_user(space_mask, position, location):
         )
     while position is None:
         position = tuple(map(float, input(message).split(",")))
-        position = transform_coordinate(position)
-        if not is_obstacle(position, space_mask):
+        position = transform_coordinate(position) # convert coordinate system frame to lower bottom origin
+        if not is_obstacle(position, space_mask): # Check if position is in obstacle space
             return position
         else:
             print("\nInvalid position.")
