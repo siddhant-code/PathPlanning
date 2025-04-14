@@ -79,11 +79,11 @@ BACKGROUND_COLOR = (232, 215, 241)
 OBSTACLE_COLOR = (0, 0, 0)
 CLEARANCE_COLOR = (100, 100, 100)
 ASTAR_MAP = None
-CLEARANCE = None
+CLEARANCE = 20 # in mm
 height = 300
-OFFSET_X = 50  # x fffset of origin wrt lower bottom corner
+OFFSET_X = 50  # x offset of origin wrt lower bottom corner
 width = OFFSET_X + 540 + 100  # Added padding for better usage
-OFFSET_Y = height / 2  # y fffset of origin wrt lower bottom corner
+OFFSET_Y = height / 2  # y offset of origin wrt lower bottom corner
 action_list = None  # Initialise list of actions of robot
 
 
