@@ -552,7 +552,7 @@ def ask_position_to_user(space_mask, position, location):
         )
     if location == "end":
         message = (
-            "\nEnter the goal coordinates in the form x (cm),y (cm),theta(radian): "
+            "\nEnter the goal coordinates in the form x (cm),y (cm): "
         )
     while position is None:
         position = tuple(map(float, input(message).split(",")))
