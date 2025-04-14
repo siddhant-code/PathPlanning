@@ -112,15 +112,7 @@ Use the command below to launch your simulation.
 All values must be filled in by you based on your planning map and robot configuration.
 
 ```
-ros2 launch astar_falcon_planner ros_falcon_astar.launch.py \
-    start_position:=[0.0, 0.0, 0.0] \
-    end_position:=[5.2, 0.0, 0.0] \
-    robot_radius:=0.22 \
-    clearance:=0.22 \
-    delta_time:=1.0 \
-    wheel_radius:=0.033 \
-    wheel_distance:=0.287 \
-    rpms:=[50.0, 100.0]
+ros2 launch astar_falcon_planner ros_falcon_astar.launch.py     start_position:=[0.0,0.0,0.0]     end_position:=[5.2,0.0,0.0]     robot_radius:=0.22     clearance:=0.22     delta_time:=1.0     wheel_radius:=0.033     wheel_distance:=0.287     rpms:=[50.0,100.0]
 ```
 Note: Starting position should be 0,0,0 for falcon as they have spawning position set to that in their respective launch files. If one has to change spawn position,they have to edit the location in AMRPathPlanning.usda and use the same for path planning.
 
