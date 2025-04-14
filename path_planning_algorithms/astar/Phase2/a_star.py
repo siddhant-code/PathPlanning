@@ -79,7 +79,7 @@ BACKGROUND_COLOR = (232, 215, 241)
 OBSTACLE_COLOR = (0, 0, 0)
 CLEARANCE_COLOR = (100, 100, 100)
 ASTAR_MAP = None
-CLEARANCE = 20 # in mm
+CLEARANCE = 2  # in cm
 height = 300
 OFFSET_X = 50  # x offset of origin wrt lower bottom corner
 width = OFFSET_X + 540 + 100  # Added padding for better usage
@@ -239,9 +239,12 @@ def a_star(start_position, end_position, delta_time, canvas_image):
             parent = None
             # Bactrack and return found path
             while parent != start_position:
-                parent, action = node_list[node[:2]]
-                path.append((parent, action))
-                node = parent[:2]
+                if node_list.get(node[:2], None):  # Check if node in node list
+                    parent, action = node_list[node[:2]]
+                    path.append((parent, action))
+                    node = parent[:2]
+                else:
+                    break
             return path[::-1], explored_nodes
         action_node_pair = get_children(*node).items()  # Get all possible next states
         visited_set.add(node[:2])  # Add node to visited set
@@ -441,22 +444,25 @@ def generate_map(clearance):
 # Prompt user for RPM
 def ask_rpm():
     rpm1, rpm2 = map(
-        int, input("\nEnter the 2 wheel RPM values in the form rpm1,rpm2: ").split(",")
+        int,
+        input("\nEnter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: ").split(
+            ","
+        ),
     )
     return (min(rpm1, rpm2), max(rpm1, rpm2))
 
 
 def run_astar(
-    start_position,
-    end_position,
-    clearance,
+    start_position,  # (x(cm),y(cm),theta(radian))
+    end_position,  # (x(cm),y(cm),theta(radian))
+    clearance,  # (cm)
     robot_radius=ROBOT_RADIUS,
     wheel_radius=WHEEL_RADIUS,
     distance_between_wheels=WHEEL_DISTANCE,
     goal_threshold=DISTANCE_THRESHOLD,
     delta_time=DELTA_TIME,
-    wheel_rpm_high=LOW_RPM,
-    wheel_rpm_low=HIGH_RPM,
+    wheel_rpm_high=LOW_RPM,  # radian/ sec
+    wheel_rpm_low=HIGH_RPM,  # radian / sec
     visualization=False,
 ):
     global \
@@ -479,6 +485,11 @@ def run_astar(
     DELTA_TIME = delta_time
     LOW_RPM = wheel_rpm_low
     HIGH_RPM = wheel_rpm_high
+    if is_goal_node(start_position, end_position):
+        print(
+            "End position within threshold distance of start position, ending search.."
+        )
+        return None
     if ASTAR_MAP is None:
         ASTAR_MAP = generate_map(clearance).copy()
     # Defining action list
@@ -526,8 +537,9 @@ def ask_clearance():
                 "Give a value for clearance (mm) with consideration of robot radius: "
             )
         )
+        clearance = clearance / 10  # Change to cm
     except Exception as e:
-        print("Error setting custom clearance!")
+        print("Error setting custom clearance! Using defualt value...")
         clearance = CLEARANCE
     return clearance
 
@@ -562,5 +574,6 @@ if __name__ == "__main__":
         wheel_rpm_high=high_rpm,
         visualization=True,
     )
-    transformed_path = get_inverse_transformed_path(path)
-    print("Path:", transformed_path)
+    if path is not None:
+        transformed_path = get_inverse_transformed_path(path)
+        print("Path:", transformed_path)
