@@ -314,10 +314,10 @@ def generate_map(clearance):
     
     obstacle_list = [
         (100 + OFFSET_X, 0, 10, 200),
-        (200 + OFFSET_X, 100, 10, 200),
-        (300 + OFFSET_X, 0, 10, 100),
-        (300 + OFFSET_X, 200, 10, 100),
-        (400 + OFFSET_X, 0, 10, 200)
+        (210 + OFFSET_X, 100, 10, 200),
+        (320 + OFFSET_X, 0, 10, 100),
+        (320 + OFFSET_X, 200, 10, 100),
+        (430 + OFFSET_X, 0, 10, 200)
     ]
 
     for o in obstacle_list:
