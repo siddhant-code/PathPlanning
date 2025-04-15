@@ -11,7 +11,7 @@
 https://github.com/siddhant-code/PathPlanning.git
 
 ## Part-1
-Go to the directory and run:
+Go to the directory Phase2 and run:
 
 ```sh
 python3 a_star.py
@@ -36,6 +36,7 @@ Enter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: 30,50
 
 1.If you give higher rpms, make the clearance higher.
 2.Have minimal differences between rpms.(High rpm - low rpm =20 approx)
+3.The origin is set to the middle center as per the picture given in question.
 
 ## Part-2A
 
