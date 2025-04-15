@@ -10,6 +10,8 @@
 ### Repository:
 https://github.com/siddhant-code/PathPlanning.git
 
+## Part-2
+
 ## Introduction:
 
 Implementing A* Algorithm to find a path between the start and end point on a given map for Turtlebot 3 in Falcon simulator.
@@ -123,3 +125,5 @@ We also added static_tf_node to the launch file because we faced transform mappi
 When you run the program, the falconsim window will be opened and then it will first display the workspace map showing the obstacles, wall and the clearance region.
 
 After viewing the map, close the window and wait for some time to let the program generate the path.Once the path is generated successfully, you can visualize the robot moving in falconsim window.
+
+Video link: https://drive.google.com/drive/folders/1SchzSdAjJbw0uvH4HE2pZC138yKPgtiM

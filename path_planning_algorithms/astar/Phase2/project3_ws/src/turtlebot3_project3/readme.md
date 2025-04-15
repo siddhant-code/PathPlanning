@@ -1,46 +1,37 @@
 # ENPM 661: Path Planning for Autonomous Robots
 ### Instructions for Project3- Phase2
 
+## Part-1
+
 ## Map Dimensions
 
 All dimensions are in milimeters.
 
 ![map](map.png)
 
-## Setup
 
-Create a workpace
+## Clone the reposiory
 
 ```sh
-mkdir -p project3_ws/src
-cd ~/project3_ws/src
+git clone https://github.com/siddhant-code/PathPlanning.git
 ```
 
-Clone the reposiory
+## Install ROS2 Humble (If not already installed)
+Follow [this guide](https://docs.ros.org/en/humble/Installation.html) Then install colcon:
 
 ```sh
-git clone https://github.com/koustubh1012/turtlebot3_project3.git
+sudo apt install python3-colcon-common-extensions
 ```
 
-Source ROS (Enable ROS commands)
+## Build the workspace
 
 ```sh
-source /opt/ros/galactic/setup.bash
-```
-
-Build the workspace
-
-```sh
-cd ~/project3_ws
-colcon build --packages-select turtlebot3_project3
-```
-
-
-Source ROS (Package will be identified)
-
-```sh
+cd path_planning_algorithms/astar/Phase2/project3_ws/
+source /opt/ros/humble/setup.bash
+colcon build
 source install/setup.bash
 ```
+
 
 ## Test Setup
 
@@ -54,57 +45,10 @@ You should see the turtlebot3 along with the maze in gazebo
 
 ![gazebo](gazebo.png)
 
-Explore Topics
+Open another terminal:
 
 ```sh
-ros2 topic list
-```
-
-Publish to topic (cmd_vel)
-
-```sh
-ros2 topic pub \cmd_vel geometry_msgs/msg/Twist "linear:
-  x: 0.1
-  y: 0.0
-  z: 0.0
-angular:
-  x: 0.0
-  y: 0.0
-  z: 0.1"
-```
-
-## Write a script
-
-We have provide a script fro reference in [teleop.py](/scripts/teleop.py)
-
-You can run the script using
-
-```sh
-ros2 run turtlebot3_project3 teleop.py
-```
-
-## Add new Python executable
-
-* Write a new python script and store it in a folder
-* Update the CMakeLists.txt file 
-
-```xml
-# Install python scripts
-
-install(PROGRAMS 
-  scripts/teleop.py
-  # You can add more scripts here
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-```
-
-* Build the package
-* Source the install folder
-* Run the executable
-
-```sh
-ros2 run turtlebot3_project3 teleop.py
+ros2 run turtlebot3_project3 controller.py
 ```
 
 
