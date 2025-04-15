@@ -73,6 +73,8 @@ Download the AMRPathPlanning scenario from Falcon Cloud (login required using yo
 Unzip the downloaded folder.
 Place the unzipped AMRPathPlanning folder inside your Scenarios/ folder.
 
+Link to download [Twin](https://drive.google.com/drive/folders/1fqnezgb9rzdQJmdwOO4AGXci_xRFAE8B?usp=sharing) folder
+
 Your final folder structure should look like this:
 
 ```
