@@ -3,14 +3,40 @@
 
 ### Students:
 
-1) Siddhant Pramod Deshmukh (121322463)
-2) Pon Aswin Sankaralingam (121322517)
-3) Venkata Madhav Tadavarthi (121058768)
+1) Siddhant Pramod Deshmukh (121322463) Directory ID:iamsid
+2) Pon Aswin Sankaralingam (121322517) Directory ID:aswin03
+3) Venkata Madhav Tadavarthi (121058768) Directory ID:vmadhav
 
 ### Repository:
 https://github.com/siddhant-code/PathPlanning.git
 
 ## Part-1
+Go to the directory and run:
+
+```sh
+python3 a_star.py
+```sh
+
+Example inputs:
+```
+Give a value for clearance (mm) with consideration of robot radius:20
+```
+
+After this a worskpace map will be generated, close that map window. And you will be asked:
+
+```
+Enter the start coordinates in the form x (cm),y (cm),theta(radian): 0,0,0
+
+Enter the goal coordinates in the form x (cm),y (cm): 550,0
+
+Enter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: 30,50
+```
+## Note:
+
+1.If you give higher rpms, make the clearance higher.
+2.Have minimal differences between rpms.(High rpm - low rpm =20 approx)
+
+## Part-2A
 
 ## Map Dimensions
 
@@ -91,7 +117,7 @@ Enter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: 30,50
 pip install pynput
 ```
 
-## Part-2
+## Part-2B
 
 ## Introduction:
 
