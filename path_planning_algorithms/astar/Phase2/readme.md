@@ -47,7 +47,8 @@ source install/setup.bash
 Launch Environment
 
 ```sh
-ros2 launch turtlebot3_project3 competition_world.launch
+export TURTLEBOT3_MODEL=waffle
+ros2 launch turtlebot3_project3 competition_world.launch.py
 ```
 
 You should see the turtlebot3 along with the maze in gazebo
@@ -65,19 +66,22 @@ ros2 run turtlebot3_project3 controller.py
 
 Example inputs:
 ```
-Give a value for clearance (mm) with consideration of robot radius:
+Give a value for clearance (mm) with consideration of robot radius:20
 ```
 
-After this a worspace map will be generated, close that map window. And you will be asked:
+After this a worskpace map will be generated, close that map window. And you will be asked:
 
 ```
 Enter the start coordinates in the form x (cm),y (cm),theta(radian): 0,0,0
 
-Enter the goal coordinates in the form x (cm),y (cm): 
+Enter the goal coordinates in the form x (cm),y (cm): 550,0
 
-Enter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: 50,100
+Enter the 2 wheel RPM values in rad/s in the form rpm1,rpm2: 30,50
 ```
+## Note:
 
+1.If you give higher rpms, make the clearance higher.
+2.Have minimal differences between rpms.(High rpm - low rpm =20 approx)
 
 # Error
 
