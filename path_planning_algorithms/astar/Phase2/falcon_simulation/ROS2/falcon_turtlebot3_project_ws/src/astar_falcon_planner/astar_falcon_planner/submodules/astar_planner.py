@@ -434,12 +434,3 @@ def plan_path(start: List[float],
         print([val for val in step])
 
     return delta_list
-if __name__ == "__main__":   
-    start_position,end_position,low_rpm,high_rpm,clearance = gather_inputs()
-    path = run_astar(start_position,end_position,clearance,low_rpm,high_rpm,visualization=True)
-
-    
-    deltas = get_path_falcon_simulation_path(path)
-    delta_list = deltas.tolist()
-    for step in delta_list:
-        print([val for val in step])
