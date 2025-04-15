@@ -15,7 +15,7 @@ Go to the directory and run:
 
 ```sh
 python3 a_star.py
-```sh
+```
 
 Example inputs:
 
