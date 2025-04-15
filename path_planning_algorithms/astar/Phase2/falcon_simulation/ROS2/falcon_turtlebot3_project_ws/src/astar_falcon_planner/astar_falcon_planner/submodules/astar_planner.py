@@ -428,6 +428,7 @@ def plan_path(start: List[float],
               rpm2: float) -> List[List[float]]:
     path = run_astar(transform_coordinate(start),transform_coordinate(end),clearance=int(clearance),wheel_rpm_low=int(rpm1),wheel_rpm_high=int(rpm2),visualization=True)
     
+    #creating a list in the format of List[List[dx,dy,dtheta]] with units cm and radians using get_path_falcon_simulation_path() function
     deltas = get_path_falcon_simulation_path(path)
     delta_list = deltas.tolist()
     for step in delta_list:
