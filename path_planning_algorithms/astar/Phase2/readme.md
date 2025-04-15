@@ -18,6 +18,7 @@ python3 a_star.py
 ```sh
 
 Example inputs:
+
 ```
 Give a value for clearance (mm) with consideration of robot radius:20
 ```
