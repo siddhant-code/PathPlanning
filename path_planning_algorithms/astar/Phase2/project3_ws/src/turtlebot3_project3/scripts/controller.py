@@ -1,12 +1,17 @@
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+import math
 import time
 import math
 from functools import lru_cache
 import heapq
 import numpy as np
 from sympy import symbols
-from moviepy import ImageSequenceClip
 import cv2
 import matplotlib.pyplot as plt
+import os
 
 # Defining symbols
 x, y, z, a, b, r = symbols("x,y,z,a,b,r")
@@ -135,8 +140,8 @@ def get_next_position(x, y, theta, left_rpm, right_rpm, dt=DELTA_TIME):
         )  # Verify and define theta in range of 180 to -180
 
     return (
-        (x_new // 0.4) * 0.4,
-        (y_new // 0.4) * 0.4,
+        (x_new // 0.3) * 0.3,
+        (y_new // 0.3) * 0.3,
         theta_new,
     )  # Discretizing the results for memory efficiency
 
@@ -283,9 +288,9 @@ def generate_space_map(canvas_image):
 
 
 # Function to get waypoints for robot in falcon simulator based on path
-def get_path_falcon_simulation_path(path):
+def get_simulation_path(path):
     arr = np.array(list(map(lambda x: x[0], path)))
-    return np.diff(arr, axis=0) * np.array([1, -1, 1])
+    return np.diff(arr, axis=0) 
 
 
 # Function to get waypoints for robot in gazebo based on path
@@ -327,21 +332,10 @@ def visualize(image, path, exploration_tree):
     return frames
 
 
-# Writing the frames to video
-def write_to_video(frames, name: str):
-    if not name.endswith(".mp4"):
-        name = name + ".mp4"
-
-    # Flipping images to correct origin position
-    flipped_frames = [cv2.flip(frame, 0) for frame in frames]
-    clip = ImageSequenceClip(flipped_frames, fps=24)
-    clip.write_videofile(name)
-    print(f"Video saved as {name}")
-
-
 def generate_map(clearance):
     
     clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearance to cm
+    
 
     print("\nGenerating the map....")
 
@@ -430,6 +424,7 @@ def generate_map(clearance):
                 canvas[i, j] = OBSTACLE_COLOR
             elif clearance_only.check_point_inside_shape_collection([j, i]):
                 canvas[i, j] = CLEARANCE_COLOR  # ← CLEARANCE_COLOR (gray)
+    
 
     print("Press q to close the window and continue...")
 
@@ -507,11 +502,7 @@ def run_astar(
     path, exploration_tree = a_star(
         start_position, end_position, delta_time, canvas_image=ASTAR_MAP
     )
-    if path is not None and visualization:
-        print("\nTotal time:", time.time() - start)
-        print("Preparing visualization...")
-        frames = visualize(ASTAR_MAP, path, exploration_tree)
-        write_to_video(frames, "output.mp4")
+    print("\nTotal time:", time.time() - start)
     return path
 
 
@@ -556,24 +547,66 @@ def ask_position_to_user(space_mask, position, location):
         )
     while position is None:
         position = tuple(map(float, input(message).split(",")))
-        position = transform_coordinate(position) # convert coordinate system frame to lower bottom origin
+        position = transform_coordinate(position)  # convert coordinate system frame to lower bottom origin
         if not is_obstacle(position, space_mask): # Check if position is in obstacle space
             return position
         else:
             print("\nInvalid position.")
             position = None
 
+class RobotAStarPlannerNode(Node):
+    def __init__(self):
+        super().__init__('robot_a_star_planner')
+        self.get_logger().info(f'READY AStar Planner')
+        start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
+        waypoints = list(run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=False))
+        path = list(get_simulation_path(waypoints))
+        path.append([0.0,0.0,0.0]) # Adding this so robot should stop after reaching goal
+        self.get_logger().info(f'Path 1 Planned')
+       
+        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)        
+        self.planned_path = path
+        self.delta_time = 1
+        self.current_twist = Twist()
+        self.current_twist.angular.x = 0.0
+        self.current_twist.angular.y = 0.0
+        self.current_twist.angular.z = 0.0
+        self.current_twist.linear.x = 0.0
+        self.current_twist.linear.y = 0.0
+        self.current_twist.linear.z = 0.0
+        self.timer = self.create_timer(1, self.on_timer)
+        self.get_logger().info(f'READY AStar Node')
 
-if __name__ == "__main__":
-    start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
-    path = run_astar(
-        start_position,
-        end_position,
-        clearance=clearance,
-        wheel_rpm_low=low_rpm,
-        wheel_rpm_high=high_rpm,
-        visualization=True,
-    )
-    if path is not None:
-        transformed_path = get_inverse_transformed_path(path)
-        print("Path:", transformed_path)
+    # Call functioin after each 1 second
+    def on_timer(self):
+             
+            if len(self.planned_path)>0:        
+                self.publish_twist_cmd(self.planned_path)
+                self.planned_path.pop(0)
+            else:
+                self.get_logger().info(f'First Target Reached, Waiting')
+                self.current_twist.linear.x = 0.0
+                self.current_twist.linear.y = 0.0
+                self.current_twist.angular.z = 0.0
+                self.publisher.publish(self.current_twist)
+                rclpy.shutdown()
+                return
+        
+    # Publish velocity
+    def publish_twist_cmd(self, planned_path):
+        x_vel = (planned_path[0][0]/self.delta_time)
+        y_vel = (planned_path[0][1]/self.delta_time)
+        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) / 100 # Converting to m/sq
+        self.current_twist.linear.y = 0.0
+        self.current_twist.angular.z = float(planned_path[0][2]/self.delta_time)
+        self.publisher.publish(self.current_twist)
+    
+
+if __name__ == '__main__':
+    rclpy.init()    
+    node = RobotAStarPlannerNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+        
