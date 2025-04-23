@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from turtlebot4_navigation.turtlebot4_navigator import TurtleBot4Navigator
 import math
 import time
 import math
@@ -72,9 +73,9 @@ class ShapeCollection:
 
 
 # Defining constants
-WHEEL_DIAMETER = 6.6  # in cm
-ROBOT_RADIUS = 22.0  # in cm
-WHEEL_DISTANCE = 28.7  # in cm
+WHEEL_DIAMETER = 7.2  # in cm
+ROBOT_RADIUS = 38 / 2  # in cm
+WHEEL_DISTANCE = 23.5  # in cm
 WHEEL_RADIUS = WHEEL_DIAMETER / 2
 LOW_RPM = 50  # default radian/s
 HIGH_RPM = 100  # default radian/s
@@ -333,9 +334,9 @@ def visualize(image, path, exploration_tree):
 
 
 def generate_map(clearance):
-    
-    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearance to cm
-    
+    return np.load("map.npy")
+    clearance = clearance + ROBOT_RADIUS  # Coverting clearance to cm
+    print("Clearance:",clearance)
 
     print("\nGenerating the map....")
 
@@ -427,7 +428,7 @@ def generate_map(clearance):
     
 
     print("Press q to close the window and continue...")
-
+    np.save("map.npy",canvas)
     plt.title("Workspace Map")
     plt.imshow(canvas, origin="lower")
     plt.axis("off")
@@ -560,11 +561,12 @@ class RobotAStarPlannerNode(Node):
         self.get_logger().info(f'READY AStar Planner')
         start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
         waypoints = list(run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=False))
-        path = list(get_simulation_path(waypoints))
+        path = list(get_waypoints_for_ros(waypoints))
+        print(path)
         path.append([0.0,0.0,0.0]) # Adding this so robot should stop after reaching goal
         self.get_logger().info(f'Path 1 Planned')
        
-        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)        
+        self.publisher = self.create_publisher(Twist, '/cmd_vel_unstamped', 10)        
         self.planned_path = path
         self.delta_time = 1
         self.current_twist = Twist()
@@ -574,7 +576,9 @@ class RobotAStarPlannerNode(Node):
         self.current_twist.linear.x = 0.0
         self.current_twist.linear.y = 0.0
         self.current_twist.linear.z = 0.0
-        self.timer = self.create_timer(1, self.on_timer)
+        self.timestep = 1
+        self.timer = self.create_timer(self.timestep, self.on_timer)
+        self.time = 0      
         self.get_logger().info(f'READY AStar Node')
 
     # Call functioin after each 1 second
@@ -582,7 +586,8 @@ class RobotAStarPlannerNode(Node):
              
             if len(self.planned_path)>0:        
                 self.publish_twist_cmd(self.planned_path)
-                self.planned_path.pop(0)
+                if round(self.time,2)%1 == 0:
+                    self.planned_path.pop(0)
             else:
                 self.get_logger().info(f'First Target Reached, Waiting')
                 self.current_twist.linear.x = 0.0
@@ -591,14 +596,16 @@ class RobotAStarPlannerNode(Node):
                 self.publisher.publish(self.current_twist)
                 rclpy.shutdown()
                 return
+            self.time+=self.timestep
         
     # Publish velocity
     def publish_twist_cmd(self, planned_path):
         x_vel = (planned_path[0][0]/self.delta_time)
         y_vel = (planned_path[0][1]/self.delta_time)
-        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) / 100 # Converting to m/sq
+        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) # Converting to m/sq
         self.current_twist.linear.y = 0.0
         self.current_twist.angular.z = float(planned_path[0][2]/self.delta_time)
+        print(self.current_twist.linear.x,self.current_twist.angular.z)
         self.publisher.publish(self.current_twist)
     
 
