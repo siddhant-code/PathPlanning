@@ -258,7 +258,7 @@ def a_star(start_position, end_position, delta_time, canvas_image):
             if (
                 child_node[:2] in visited_set
                 or is_obstacle(node[:2], space_mask)
-                or not check_trajectory_valid(node, action, space_mask)
+                #or not check_trajectory_valid(node, action, space_mask)
             ):  # Check if child node is already visited or lies in obstacle space or if path to go to that node is through obstacle
                 continue
             else:
@@ -334,7 +334,7 @@ def visualize(image, path, exploration_tree):
 
 def generate_map(clearance):
     
-    clearance = clearance / 10 + ROBOT_RADIUS  # Coverting clearance to cm
+    clearance = clearance  + ROBOT_RADIUS  
     
 
     print("\nGenerating the map....")
