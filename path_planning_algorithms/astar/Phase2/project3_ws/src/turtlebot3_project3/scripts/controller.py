@@ -141,8 +141,8 @@ def get_next_position(x, y, theta, left_rpm, right_rpm, dt=DELTA_TIME):
         )  # Verify and define theta in range of 180 to -180
 
     return (
-        (x_new // 0.3) * 0.3,
-        (y_new // 0.3) * 0.3,
+        (x_new // 1) * 1,
+        (y_new // 1) * 1,
         theta_new,
     )  # Discretizing the results for memory efficiency
 
@@ -259,7 +259,7 @@ def a_star(start_position, end_position, delta_time, canvas_image):
             if (
                 child_node[:2] in visited_set
                 or is_obstacle(node[:2], space_mask)
-                #or not check_trajectory_valid(node, action, space_mask)
+               # or not check_trajectory_valid(node, action, space_mask)
             ):  # Check if child node is already visited or lies in obstacle space or if path to go to that node is through obstacle
                 continue
             else:
@@ -490,13 +490,21 @@ def run_astar(
         ASTAR_MAP = generate_map(clearance).copy()
     # Defining action list
     action_list = {
+        #"low_left": (0, LOW_RPM),
+        "high_left": (0, HIGH_RPM),
+        #"low_right": (LOW_RPM, 0),
+        "high_right": (HIGH_RPM, 0),
+        #"low_straight": (LOW_RPM, LOW_RPM),
+        "mid_left": (LOW_RPM, HIGH_RPM),
+        "mid_right": (HIGH_RPM, LOW_RPM),
+        "high_straight": (HIGH_RPM, HIGH_RPM),
+    }
+    if LOW_RPM == HIGH_RPM:
+        action_list = {
         "low_left": (0, LOW_RPM),
         "high_left": (0, HIGH_RPM),
         "low_right": (LOW_RPM, 0),
         "high_right": (HIGH_RPM, 0),
-        "low_straight": (LOW_RPM, LOW_RPM),
-        "mid_left": (LOW_RPM, HIGH_RPM),
-        "mid_right": (HIGH_RPM, LOW_RPM),
         "high_straight": (HIGH_RPM, HIGH_RPM),
     }
     start = time.time()
@@ -509,15 +517,15 @@ def run_astar(
 
 # Function to prompt user for all necesarry inputs
 def gather_inputs():
-    clearance = ask_clearance()
-    global ASTAR_MAP
-    ASTAR_MAP = generate_map(clearance).copy()
-    space_mask = generate_space_map(ASTAR_MAP)
-    start_position = ask_position_to_user(space_mask, None, "start")
-    end_position = (
-        ask_position_to_user(space_mask, None, "end") + (0,)
-    )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
-    low_rpm, high_rpm = ask_rpm()
+    clearance = 10#ask_clearance()
+    #global ASTAR_MAP
+    #ASTAR_MAP = generate_map(clearance).copy()
+    #space_mask = generate_space_map(ASTAR_MAP)
+    start_position = transform_coordinate((0,0,0))#ask_position_to_user(space_mask, None, "start")
+    end_position = transform_coordinate((540,80,0))#(
+        #ask_position_to_user(space_mask, None, "end") + (0,)
+   # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
+    low_rpm, high_rpm = 20,30#ask_rpm()
     return start_position, end_position, low_rpm, high_rpm, clearance
 
 
