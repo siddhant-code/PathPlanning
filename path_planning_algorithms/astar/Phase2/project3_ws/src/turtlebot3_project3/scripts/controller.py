@@ -74,7 +74,7 @@ class ShapeCollection:
 
 # Defining constants
 WHEEL_DIAMETER = 7.2  # in cm
-ROBOT_RADIUS = 38 / 2  # in cm
+ROBOT_RADIUS = (38 / 2)  # in cm 
 WHEEL_DISTANCE = 23.5  # in cm
 WHEEL_RADIUS = WHEEL_DIAMETER / 2
 LOW_RPM = 50  # default radian/s
@@ -87,7 +87,7 @@ CLEARANCE_COLOR = (100, 100, 100)
 ASTAR_MAP = None
 CLEARANCE = 2  # in cm
 height = 300
-OFFSET_X = 50  # x offset of origin wrt lower bottom corner
+OFFSET_X = 90  # x offset of origin wrt lower bottom corner
 width = OFFSET_X + 540 + 100  # Added padding for better usage
 OFFSET_Y = height / 2  # y offset of origin wrt lower bottom corner
 action_list = None  # Initialise list of actions of robot
@@ -278,6 +278,7 @@ def a_star(start_position, end_position, delta_time, canvas_image):
                     heapq.heappush(
                         open_list, (total_time, child_node)
                     )  # Update priority
+    print("Explored nodes:",len(explored_nodes))
     print("No path found")
     return None, None
 
@@ -490,11 +491,11 @@ def run_astar(
         ASTAR_MAP = generate_map(clearance).copy()
     # Defining action list
     action_list = {
-        #"low_left": (0, LOW_RPM),
+        "low_left": (0, LOW_RPM),
         "high_left": (0, HIGH_RPM),
-        #"low_right": (LOW_RPM, 0),
+        "low_right": (LOW_RPM, 0),
         "high_right": (HIGH_RPM, 0),
-        #"low_straight": (LOW_RPM, LOW_RPM),
+        "low_straight": (LOW_RPM, LOW_RPM),
         "mid_left": (LOW_RPM, HIGH_RPM),
         "mid_right": (HIGH_RPM, LOW_RPM),
         "high_straight": (HIGH_RPM, HIGH_RPM),
@@ -518,10 +519,11 @@ def run_astar(
 # Function to prompt user for all necesarry inputs
 def gather_inputs():
     clearance = 10#ask_clearance()
-    #global ASTAR_MAP
-    #ASTAR_MAP = generate_map(clearance).copy()
-    #space_mask = generate_space_map(ASTAR_MAP)
+    global ASTAR_MAP
+    ASTAR_MAP = generate_map(clearance).copy()
+    space_mask = generate_space_map(ASTAR_MAP)
     start_position = transform_coordinate((0,0,0))#ask_position_to_user(space_mask, None, "start")
+    print("obstacle:",is_obstacle(start_position,space_mask))
     end_position = transform_coordinate((540,80,0))#(
         #ask_position_to_user(space_mask, None, "end") + (0,)
    # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
