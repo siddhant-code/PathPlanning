@@ -36,9 +36,9 @@ class ControllerNode(Node):
         measured_roll,measured_pitch, measured_yaw = euler_from_quaternion([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w]) 
         measured_linear_velocity = vel.linear.x
         measured_angular_velocity = vel.angular.z
-        # self.max_lin_vel_reached= max(self.max_lin_vel_reached,measured_linear_velocity)
-        # self.max_ang_vel_reached= max(self.max_ang_vel_reached,measured_angular_velocity)
-        # self.get_logger().info(f"Max lin velocity {self.max_lin_vel_reached} Max ang {self.max_ang_vel_reached}")
+        self.max_lin_vel_reached= max(self.max_lin_vel_reached,measured_linear_velocity)
+        self.max_ang_vel_reached= max(self.max_ang_vel_reached,measured_angular_velocity)
+        self.get_logger().info(f"Max lin velocity {self.max_lin_vel_reached} Max ang {self.max_ang_vel_reached}")
         linear_velocity, angular_velocity = self.controller(measured_x,measured_y,measured_yaw)
         self.publish_velocity(linear_velocity,angular_velocity)
         
