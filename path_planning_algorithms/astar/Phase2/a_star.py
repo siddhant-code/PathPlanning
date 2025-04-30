@@ -67,9 +67,9 @@ class ShapeCollection:
 
 
 # Defining constants
-WHEEL_DIAMETER = 6.6  # in cm
-ROBOT_RADIUS = 22.0  # in cm
-WHEEL_DISTANCE = 28.7  # in cm
+WHEEL_DIAMETER = 7.2  # in cm
+ROBOT_RADIUS = (38 / 2)  # in cm 
+WHEEL_DISTANCE = 23.5  # in cm
 WHEEL_RADIUS = WHEEL_DIAMETER / 2
 LOW_RPM = 50  # default radian/s
 HIGH_RPM = 100  # default radian/s
@@ -81,7 +81,7 @@ CLEARANCE_COLOR = (100, 100, 100)
 ASTAR_MAP = None
 CLEARANCE = 2  # in cm
 height = 300
-OFFSET_X = 50  # x offset of origin wrt lower bottom corner
+OFFSET_X = 90  # x offset of origin wrt lower bottom corner
 width = OFFSET_X + 540 + 100  # Added padding for better usage
 OFFSET_Y = height / 2  # y offset of origin wrt lower bottom corner
 action_list = None  # Initialise list of actions of robot
@@ -135,8 +135,8 @@ def get_next_position(x, y, theta, left_rpm, right_rpm, dt=DELTA_TIME):
         )  # Verify and define theta in range of 180 to -180
 
     return (
-        (x_new // 0.4) * 0.4,
-        (y_new // 0.4) * 0.4,
+        (x_new // 1) * 1,
+        (y_new // 1) * 1,
         theta_new,
     )  # Discretizing the results for memory efficiency
 
@@ -340,9 +340,9 @@ def write_to_video(frames, name: str):
 
 
 def generate_map(clearance):
-    
+    return np.load("map.npy")
     clearance = clearance + ROBOT_RADIUS 
-
+    print("Total clearance:",clearance)
     print("\nGenerating the map....")
 
     # Create obstacle collection
@@ -494,13 +494,21 @@ def run_astar(
         ASTAR_MAP = generate_map(clearance).copy()
     # Defining action list
     action_list = {
+        #"low_left": (0, LOW_RPM),
+        "high_left": (0, HIGH_RPM),
+        #"low_right": (LOW_RPM, 0),
+        "high_right": (HIGH_RPM, 0),
+        #"low_straight": (LOW_RPM, LOW_RPM),
+        "mid_left": (LOW_RPM, HIGH_RPM),
+        "mid_right": (HIGH_RPM, LOW_RPM),
+        "high_straight": (HIGH_RPM, HIGH_RPM),
+    }
+    if LOW_RPM == HIGH_RPM:
+        action_list = {
         "low_left": (0, LOW_RPM),
         "high_left": (0, HIGH_RPM),
         "low_right": (LOW_RPM, 0),
         "high_right": (HIGH_RPM, 0),
-        "low_straight": (LOW_RPM, LOW_RPM),
-        "mid_left": (LOW_RPM, HIGH_RPM),
-        "mid_right": (HIGH_RPM, LOW_RPM),
         "high_straight": (HIGH_RPM, HIGH_RPM),
     }
     start = time.time()
