@@ -39,10 +39,10 @@ class ControllerNode(Node):
         self.max_lin_vel_reached= max(self.max_lin_vel_reached,measured_linear_velocity)
         self.max_ang_vel_reached= max(self.max_ang_vel_reached,measured_angular_velocity)
         self.get_logger().info(f"Max lin velocity {self.max_lin_vel_reached} Max ang {self.max_ang_vel_reached}")
-        linear_velocity, angular_velocity = self.controller(measured_x,measured_y,measured_yaw)
+        linear_velocity, angular_velocity = self.controller(measured_x,measured_y,measured_yaw,measured_linear_velocity)
         self.publish_velocity(linear_velocity,angular_velocity)
         
-    def controller(self,measured_x:float,measured_y:float,measured_yaw:float):
+    def controller(self,measured_x:float,measured_y:float,measured_yaw:float,measured_lin_vel:float):
         if self.target_node is not None:
             time_now = time.time()
             dt = time_now - self.start_time 
@@ -67,7 +67,8 @@ class ControllerNode(Node):
             proportioanl_angular_k = 0.4
             integral_linear_k = 0#0.1
             integral_angular_k = 0#0.2
-            linear_vel = proportional_linear_k*distance_error + integral_linear_k*self.total_distance_error
+            alpha = 1.0
+            linear_vel = measured_lin_vel*(1-alpha) + alpha*(proportional_linear_k*distance_error + integral_linear_k*self.total_distance_error)
             angular_vel = proportioanl_angular_k * angular_error + integral_angular_k*self.total_angular_error
             return 9*linear_vel,9*angular_vel
         else:

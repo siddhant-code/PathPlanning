@@ -558,7 +558,7 @@ def gather_inputs():
     end_position = transform_coordinate((540,80,0))#(
         #ask_position_to_user(space_mask, None, "end") + (0,)
    # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
-    low_rpm, high_rpm = 18,35#ask_rpm()
+    low_rpm, high_rpm = 10,25#ask_rpm()
     return start_position, end_position, low_rpm, high_rpm, clearance
 
 
