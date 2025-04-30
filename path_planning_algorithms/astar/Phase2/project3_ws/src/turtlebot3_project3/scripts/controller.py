@@ -157,7 +157,7 @@ def expand_node(x,y,theta,length):
 
 # Get all possible states from the currrent state
 def get_children(x, y, theta):
-    step_size = 11
+    #step_size = 11
     #return expand_node(x,y,theta,step_size)
     return {
         action: get_next_position(x, y, theta, *action_list[action])
@@ -551,15 +551,14 @@ def run_astar(
 # Function to prompt user for all necesarry inputs
 def gather_inputs():
     clearance = 10#ask_clearance()
-    global ASTAR_MAP
-    ASTAR_MAP = generate_map(clearance).copy()
-    space_mask = generate_space_map(ASTAR_MAP)
+    # global ASTAR_MAP
+    # ASTAR_MAP = generate_map(clearance).copy()
+    # space_mask = generate_space_map(ASTAR_MAP)
     start_position = transform_coordinate((0,0,0))#ask_position_to_user(space_mask, None, "start")
-    print("obstacle:",is_obstacle(start_position,space_mask))
     end_position = transform_coordinate((540,80,0))#(
         #ask_position_to_user(space_mask, None, "end") + (0,)
    # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
-    low_rpm, high_rpm = 10,25#ask_rpm()
+    low_rpm, high_rpm = 18,35#ask_rpm()
     return start_position, end_position, low_rpm, high_rpm, clearance
 
 
