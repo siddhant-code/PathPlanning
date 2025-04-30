@@ -554,7 +554,7 @@ def gather_inputs():
     # ASTAR_MAP = generate_map(clearance).copy()
     # space_mask = generate_space_map(ASTAR_MAP)
     start_position = transform_coordinate((0,0,0))#ask_position_to_user(space_mask, None, "start")
-    end_position = transform_coordinate((540,80,0))#(
+    end_position = transform_coordinate((540,0,0))#(
         #ask_position_to_user(space_mask, None, "end") + (0,)
    # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
     low_rpm, high_rpm = 10,25#ask_rpm()
