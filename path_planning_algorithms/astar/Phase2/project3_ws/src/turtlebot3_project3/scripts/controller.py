@@ -2,7 +2,6 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from turtlebot4_navigation.turtlebot4_navigator import TurtleBot4Navigator
 import math
 import time
 import math
@@ -139,16 +138,27 @@ def get_next_position(x, y, theta, left_rpm, right_rpm, dt=DELTA_TIME):
         theta_new = check_angle_limit(
             theta_new
         )  # Verify and define theta in range of 180 to -180
-
+    scl = 1
     return (
-        (x_new // 1) * 1,
-        (y_new // 1) * 1,
+        (x_new // scl) * scl,
+        (y_new // scl) * scl,
         theta_new,
     )  # Discretizing the results for memory efficiency
+
+def expand_node(x,y,theta,length):
+  L = length
+  child_nodes = {}
+  for diff in [-np.pi/3,-np.pi/6,0,np.pi/6,np.pi/3]:
+    angle = theta + diff
+    sl = 1
+    child_nodes.update({str(diff):(((x + L*np.cos(angle)))//sl * sl,(y + L*np.sin(angle))//sl * sl,theta + diff)})
+  return child_nodes
 
 
 # Get all possible states from the currrent state
 def get_children(x, y, theta):
+    step_size = 11
+    #return expand_node(x,y,theta,step_size)
     return {
         action: get_next_position(x, y, theta, *action_list[action])
         for action in action_list.keys()
@@ -172,6 +182,7 @@ def is_obstacle(point, space_mask):
 
 # Determines if the node is within threshold distance of goal node
 def is_goal_node(node, goal_node, threshold=DISTANCE_THRESHOLD):
+    return node[0] > goal_node[0]
     return math.hypot(node[0] - goal_node[0], node[1] - goal_node[1]) < threshold
 
 
@@ -320,23 +331,40 @@ def visualize(image, path, exploration_tree):
     iteration = max(int(len(exploration_tree) / (24 * 5)), 1)
     frames = []
     # Drawing curve fo explored nodes
-    for idx, parent in enumerate(exploration_tree):
-        for child in exploration_tree[parent]:
-            image = draw_curve(image, parent, child[0], ((200, 160, 40)))
-            cv2.circle(image, (int(child[1][0]), int(child[1][1])), 1, (255, 0, 0), 1)
-        if idx % iteration == 0:  # Append frames after certain iterations
-            frames.append(image.copy())
+    # for idx, parent in enumerate(exploration_tree):
+    #     for child in exploration_tree[parent]:
+    #         image = draw_curve(image, parent, child[0], ((200, 160, 40)))
+    #         cv2.circle(image, (int(child[1][0]), int(child[1][1])), 1, (255, 0, 0), 1)
+    #     if idx % iteration == 0:  # Append frames after certain iterations
+    #         frames.append(image.copy())
     # Drawing curve for final path
     for point, action in path:
         if action != "reached_goal":
-            image = draw_curve(image, point, action, (0, 0, 250))
+            #image = draw_curve(image, point, action, (0, 0, 250))
+            #cv2.circle(image, (int(point[0]), int(point[1])), int(ROBOT_RADIUS +1), (255, 0, 0), 1)
+            cv2.circle(image, (int(point[0]), int(point[1])), 1, (0, 0, 255), 1)
             frames.append(image.copy())
     return frames
 
+# Writing the frames to video
+def write_to_video(frames, name: str):
+    from moviepy import ImageSequenceClip
+    if not name.endswith(".mp4"):
+        name = name + ".mp4"
+
+    # Flipping images to correct origin position
+    flipped_frames = [cv2.flip(frame, 0) for frame in frames]
+    clip = ImageSequenceClip(flipped_frames, fps=24)
+    clip.write_videofile(name)
+    print(f"Video saved as {name}")
+
 
 def generate_map(clearance):
+    global CLEARANCE
+    clearance = clearance + ROBOT_RADIUS
+    CLEARANCE = clearance
     return np.load("map.npy")
-    clearance = clearance + ROBOT_RADIUS  # Coverting clearance to cm
+    
     print("Clearance:",clearance)
 
     print("\nGenerating the map....")
@@ -513,6 +541,10 @@ def run_astar(
         start_position, end_position, delta_time, canvas_image=ASTAR_MAP
     )
     print("\nTotal time:", time.time() - start)
+    if path is not None and visualization:
+        print("Preparing visualization...")
+        frames = visualize(ASTAR_MAP, path, exploration_tree)
+        write_to_video(frames, "output.mp4")
     return path
 
 
@@ -527,7 +559,7 @@ def gather_inputs():
     end_position = transform_coordinate((540,80,0))#(
         #ask_position_to_user(space_mask, None, "end") + (0,)
    # )  # We dont take final goal orientation from user. Manually defining angle as 0 for consistency in shape in nodes
-    low_rpm, high_rpm = 20,30#ask_rpm()
+    low_rpm, high_rpm = 10,25#ask_rpm()
     return start_position, end_position, low_rpm, high_rpm, clearance
 
 
@@ -565,65 +597,16 @@ def ask_position_to_user(space_mask, position, location):
             print("\nInvalid position.")
             position = None
 
-class RobotAStarPlannerNode(Node):
-    def __init__(self):
-        super().__init__('robot_a_star_planner')
-        self.get_logger().info(f'READY AStar Planner')
-        start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
-        waypoints = list(run_astar(start_position,end_position,clearance=clearance,wheel_rpm_low=low_rpm,wheel_rpm_high=high_rpm,visualization=False))
-        path = list(get_waypoints_for_ros(waypoints))
-        print(path)
-        path.append([0.0,0.0,0.0]) # Adding this so robot should stop after reaching goal
-        self.get_logger().info(f'Path 1 Planned')
-       
-        self.publisher = self.create_publisher(Twist, '/cmd_vel_unstamped', 10)        
-        self.planned_path = path
-        self.delta_time = 1
-        self.current_twist = Twist()
-        self.current_twist.angular.x = 0.0
-        self.current_twist.angular.y = 0.0
-        self.current_twist.angular.z = 0.0
-        self.current_twist.linear.x = 0.0
-        self.current_twist.linear.y = 0.0
-        self.current_twist.linear.z = 0.0
-        self.timestep = 1
-        self.timer = self.create_timer(self.timestep, self.on_timer)
-        self.time = 0      
-        self.get_logger().info(f'READY AStar Node')
-
-    # Call functioin after each 1 second
-    def on_timer(self):
-             
-            if len(self.planned_path)>0:        
-                self.publish_twist_cmd(self.planned_path)
-                if round(self.time,2)%1 == 0:
-                    self.planned_path.pop(0)
-            else:
-                self.get_logger().info(f'First Target Reached, Waiting')
-                self.current_twist.linear.x = 0.0
-                self.current_twist.linear.y = 0.0
-                self.current_twist.angular.z = 0.0
-                self.publisher.publish(self.current_twist)
-                rclpy.shutdown()
-                return
-            self.time+=self.timestep
-        
-    # Publish velocity
-    def publish_twist_cmd(self, planned_path):
-        x_vel = (planned_path[0][0]/self.delta_time)
-        y_vel = (planned_path[0][1]/self.delta_time)
-        self.current_twist.linear.x = math.sqrt(x_vel**2 + y_vel**2) # Converting to m/sq
-        self.current_twist.linear.y = 0.0
-        self.current_twist.angular.z = float(planned_path[0][2]/self.delta_time)
-        print(self.current_twist.linear.x,self.current_twist.angular.z)
-        self.publisher.publish(self.current_twist)
-    
-
-if __name__ == '__main__':
-    rclpy.init()    
-    node = RobotAStarPlannerNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
-        
+if __name__ == "__main__":
+    start_position, end_position, low_rpm, high_rpm, clearance = gather_inputs()
+    path = run_astar(
+        start_position,
+        end_position,
+        clearance=clearance,
+        wheel_rpm_low=low_rpm,
+        wheel_rpm_high=high_rpm,
+        visualization=True,
+    )
+    if path is not None:
+        transformed_path = get_inverse_transformed_path(path)
+        print("Path:", transformed_path)

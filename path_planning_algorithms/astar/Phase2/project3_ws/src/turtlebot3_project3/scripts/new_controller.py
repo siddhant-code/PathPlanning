@@ -25,6 +25,8 @@ class ControllerNode(Node):
         self.start_time = time.time()
         self.total_distance_error = 0
         self.total_angular_error = 0
+        self.max_lin_vel_reached = -math.inf
+        self.max_ang_vel_reached = -math.inf
         
     def odom_callback(self,message: Odometry):
         pose = message.pose.pose
@@ -32,9 +34,11 @@ class ControllerNode(Node):
         measured_x = pose.position.x
         measured_y = pose.position.y
         measured_roll,measured_pitch, measured_yaw = euler_from_quaternion([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w]) 
-        self.get_logger().info(f"Measured roll {measured_roll} Measure pitch {measured_pitch} Measured yaw : {measured_yaw}")
         measured_linear_velocity = vel.linear.x
         measured_angular_velocity = vel.angular.z
+        # self.max_lin_vel_reached= max(self.max_lin_vel_reached,measured_linear_velocity)
+        # self.max_ang_vel_reached= max(self.max_ang_vel_reached,measured_angular_velocity)
+        # self.get_logger().info(f"Max lin velocity {self.max_lin_vel_reached} Max ang {self.max_ang_vel_reached}")
         linear_velocity, angular_velocity = self.controller(measured_x,measured_y,measured_yaw)
         self.publish_velocity(linear_velocity,angular_velocity)
         
@@ -59,8 +63,8 @@ class ControllerNode(Node):
                 self.get_logger().info(f"Target node set to : {self.target_node}")      
             self.total_distance_error += distance_error*dt
             self.total_angular_error += angular_error*dt            
-            proportional_linear_k = 0.2
-            proportioanl_angular_k = 0.3
+            proportional_linear_k = 0.3
+            proportioanl_angular_k = 0.4
             integral_linear_k = 0#0.1
             integral_angular_k = 0#0.2
             linear_vel = proportional_linear_k*distance_error + integral_linear_k*self.total_distance_error
