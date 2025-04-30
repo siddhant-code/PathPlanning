@@ -182,7 +182,6 @@ def is_obstacle(point, space_mask):
 
 # Determines if the node is within threshold distance of goal node
 def is_goal_node(node, goal_node, threshold=DISTANCE_THRESHOLD):
-    return node[0] > goal_node[0]
     return math.hypot(node[0] - goal_node[0], node[1] - goal_node[1]) < threshold
 
 
