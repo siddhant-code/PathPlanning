@@ -6,11 +6,13 @@
 2) Pon Aswin Sankaralingam (121322517) Directory ID:aswin03
 3) Venkata Madhav Tadavarthi (121058768) Directory ID:vmadhav
 
-## Project-3:
+## Project-3 & Competition:
 
-This project implements A* Algorithm to find a path between the start and end point on a given map for a mobile robot.
+This project implements A* Algorithm to find a path between the start and end point on a given map for a mobile robot (TurtleBot4).
 
 You can access the project files through the folder [astar](https://github.com/siddhant-code/PathPlanning/tree/main/path_planning_algorithms/astar)
+
+
 
 ## Project-2:
 
