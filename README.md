@@ -1,5 +1,11 @@
 # ENPM661 - Planning for Autonomous Robots - Projects
 
+### Students:
+
+1) Siddhant Pramod Deshmukh (121322463) Directory ID:iamsid
+2) Pon Aswin Sankaralingam (121322517) Directory ID:aswin03
+3) Venkata Madhav Tadavarthi (121058768) Directory ID:vmadhav
+
 ## Project-3:
 
 This project implements A* Algorithm to find a path between the start and end point on a given map for a mobile robot.
