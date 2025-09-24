@@ -13,6 +13,8 @@ This project implements A* Algorithm to find a path between the start and end po
 You can access the project files through the folder [astar](https://github.com/siddhant-code/PathPlanning/tree/main/path_planning_algorithms/astar)
 
 
+https://github.com/user-attachments/assets/4d7ad7fe-97fb-4226-923a-5cbca0892519
+
 
 ## Project-2:
 
